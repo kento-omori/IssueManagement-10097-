@@ -1,0 +1,72 @@
+<nav class="navbar navbar-expand-sm navbar-dark bg-primary">
+  <!-- 左側は題名とホームとワークスペース -->
+  <div class="container-fluid">
+    <div class="d-flex align-items-center">
+      <a class="navbar-brand" routerLink="home" [style.curosor]="'pointer'" routerLinkActive="active" 
+       ariaCurrentWhenActive="page">課題管理アプリ</a>
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item">
+          <a class="nav-link text-white" routerLink="home" [style.curosor]="'pointer'" routerLinkActive="active" 
+          ariaCurrentWhenActive="page">ホーム</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-white" routerLink="/private" [style.curosor]="'pointer'" routerLinkActive="active" 
+          ariaCurrentWhenActive="page">個人ワークスペース</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-white" routerLink="/team" [style.curosor]="'pointer'" routerLinkActive="active" 
+          ariaCurrentWhenActive="page">共有ワークスペース</a>
+        </li>
+      </ul>
+    </div>
+        <!-- 右側は検索フォーム -->
+    <div class="row d-flex align-items-center">
+      <div class="text-center"> <form method="get" action="http://www.google.co.jp/search">
+        <table bgcolor="#007bff">
+          <tr>
+            <td>
+              <a href="http://www.google.co.jp/"></a>
+                <input type=text name=q size=25 maxlength=255 value="">
+                <input type=hidden name=ie value= UTF-8>
+                <input type=hidden name=oe value= UTF-8>
+                <input type=hidden name=hl value="ja">
+                <input type=submit name=btnG value="Google 検索" >
+              </td>
+            </tr>
+          </table>
+        </form>
+      </div>
+    </div>
+    <div class="d-flex align-items-center">
+      <ng-container *ngIf="authService.authState$ | async as user">
+        <div class="text-light me-3 dropdown">
+          <div class="d-flex align-items-center" style="cursor: pointer;" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+            <i class="fa-regular fa-user me-2"></i>
+            {{user.displayName}}
+          </div>
+          <!-- ユーザー情報ポップアップ -->
+          <div class="dropdown-menu dropdown-menu-end p-3" style="min-width: 300px;">
+            <h6 class="border-bottom pb-2 mb-3">ユーザー情報</h6>
+            <div class="mb-2">
+              <small class="text-muted d-block">ユーザー名</small>
+              <div class="text-break">{{user.displayName}}</div>
+            </div>
+            <div class="mb-2">
+              <small class="text-muted d-block">ユーザーID</small>
+              <div class="text-break">{{user.uid}}</div>
+            </div>
+            <div class="mb-3">
+              <small class="text-muted d-block">メールアドレス</small>
+              <div class="text-break">{{user.email}}</div>
+            </div>
+            <div class="border-top pt-2">
+              <button class="btn btn-outline-danger btn-sm w-100" (click)="logout()">ログアウト</button>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-outline-light" (click)="logout()">ログアウト</button>
+      </ng-container>
+    </div>
+  </div>
+</nav>
+<router-outlet></router-outlet>

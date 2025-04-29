@@ -1,0 +1,52 @@
+.gantt-container {
+    height: 100%;
+    width: 100%;
+    padding: 10px;
+    margin: 10px;
+  }
+  .gantt-chart {
+    width: 100%;
+    height: 100%;
+  }
+  :host ::ng-deep .gantt_grid_scale .gantt_grid_head_cell,
+  :host ::ng-deep .gantt_task_scale .gantt_scale_cell {
+    font-weight: bold;
+    font-size: 14px;
+    color: #333;
+  }
+  :host ::ng-deep .gantt_grid_data .gantt_cell {
+    padding: 1px;
+    line-height: 32px;
+    white-space: normal !important;
+    word-break: break-all !important;
+    overflow-wrap: break-word !important;
+    max-width: 100% !important;
+    height: 40px !important;
+    min-height: 40px !important;
+  }
+  :host ::ng-deep .gantt_grid_data .gantt_row,
+  :host ::ng-deep .gantt_task_row {
+    height: 40px !important;
+    min-height: 40px !important;
+  }
+  :host ::ng-deep .gantt_hor_scroll {
+    height: 20px;
+  }
+  /* :host ::ng-deep .gantt_task_line.high .gantt_task_progress {
+    background: rgb(204, 118, 118) !important;
+  }
+  :host ::ng-deep .gantt_task_line.medium .gantt_task_progress {
+    background: rgb(255, 187, 51) !important;
+  }
+  :host ::ng-deep .gantt_task_line.low .gantt_task_progress {
+    background: rgb(0, 200, 80) !important;
+  } */
+  :host ::ng-deep .gantt_task_line.priority-high {
+  background-color: #ff4444 !important; 
+  }
+  :host ::ng-deep .gantt_task_line.priority-medium {
+  background-color: #ffbb33 !important; 
+  }
+  :host ::ng-deep .gantt_task_line.priority-low {
+  background-color: #00C851 !important; 
+  }

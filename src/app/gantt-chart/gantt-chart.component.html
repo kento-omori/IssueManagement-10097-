@@ -1,0 +1,58 @@
+<br>
+<form [formGroup]="taskForm" (ngSubmit)="addTask()" class="gantt-input-form p-3 mb-4 bg-light rounded border">
+  <div class="row g-2 align-items-end flex-nowrap">
+    <div class="col-1">
+      <label for="ganttId" class="form-label mb-0">管理番号</label>
+      <input id="ganttId" formControlName="id" type="number" class="form-control" placeholder="管理番号" min="1"  required>
+    </div>
+    <div class="col-2">
+      <label for="ganttTitle" class="form-label mb-0">タイトル</label>
+      <input id="ganttTitle" formControlName="text" type="text" class="form-control" placeholder="タイトル" required>
+    </div>
+    <div class="col-2">
+      <label for="ganttCategory" class="form-label mb-0">カテゴリ</label>
+      <input id="ganttCategory" formControlName="category" type="text" class="form-control" placeholder="カテゴリ">
+    </div>
+    <div class="col-1">
+      <label for="ganttStart" class="form-label mb-0">開始日</label>
+      <input id="ganttStart" formControlName="start_date" type="date" class="form-control" required>
+    </div>
+    <div class="col-1">
+      <label for="ganttEnd" class="form-label mb-0">期限</label>
+      <input id="ganttEnd" formControlName="end_date" type="date" class="form-control" required>
+    </div>
+    <div class="col-1">
+      <label for="ganttAssignee" class="form-label mb-0">担当者</label>
+      <input id="ganttAssignee" formControlName="assignee" type="text" class="form-control" placeholder="担当者">
+    </div>
+    <div class="col-1">
+      <label for="ganttStatus" class="form-label mb-0">ステータス</label>
+      <select id="ganttStatus" formControlName="status" class="form-select">
+        <option value="未着手">未着手</option>
+        <option value="進行中">進行中</option>
+        <option value="レビュー中">レビュー中</option>
+        <option value="完了">完了</option>
+      </select>
+    </div>
+    <div class="col-1">
+      <label for="ganttPriority" class="form-label mb-0">優先度</label>
+      <select id="ganttPriority" formControlName="priority" class="form-select">
+        <option value="高い">高い</option>
+        <option value="普通">普通</option>
+        <option value="低い">低い</option>
+      </select>
+    </div>
+    <div class="col-1">
+        <label for="ganttprogress" class="form-label mb-0">進捗率</label>
+        <input id="ganttprogress" formControlName="progress" type="number" class="form-control" placeholder="進捗率" min="0" max="100" required>
+    </div>
+    <div class="col-1 d-flex align-items-end">
+      <button type="submit" class="btn btn-success" [disabled]="taskForm.invalid">
+        <i class="fa fa-plus"></i>
+      </button>
+    </div>
+  </div>
+</form>
+<div class="gantt-container">
+  <div #ganttChart class="gantt-chart"></div>
+</div>
