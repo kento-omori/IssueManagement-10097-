@@ -22,7 +22,6 @@ export class SharedTodoGanttService {
 
   setTasks(tasks: GanttTask[]) {
     this.tasksSubject.next(tasks);
-    // 最大値を更新
   }
 }
 

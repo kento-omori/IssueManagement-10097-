@@ -3,7 +3,7 @@ import { FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angula
 import { CommonModule } from '@angular/common';
 import { CdkDragDrop, moveItemInArray, DragDropModule, CdkDrag, CdkDropList } from '@angular/cdk/drag-drop';
 import { FormsModule } from '@angular/forms';
-import { TasklistFirestoreService } from '../firestore/tasklist-firestore.service';
+import { TasklistFirestoreService } from '../services/tasklist-firestore.service';
 
 export interface TaskLists {
   id?: string;
@@ -274,11 +274,17 @@ export class TasklistComponent implements OnInit {
 
   // タスクの削除
   deleteTask(taskList: TaskLists): void {
-    const index = this.taskLists.findIndex(task => task.id === taskList.id);
-    if (index !== -1) {
-      this.taskLists.splice(index, 1);
-      this.tasklistFirestoreService.deleteTask(taskList.id!);
-      this.applyFilters();
+    // const index = this.taskLists.findIndex(task => task.id === taskList.id);
+    // if (index !== -1) {
+    //   this.taskLists.splice(index, 1);
+    //   this.tasklistFirestoreService.deleteTask(taskList.id!);
+    //   this.applyFilters();
+    // }
+    console.log('削除するタスク:', taskList);
+    if (taskList.id) {
+      this.tasklistFirestoreService.deleteTask(taskList.id);
+    } else {
+      console.error('タスクIDが存在しません');
     }
   }
 
@@ -293,6 +299,7 @@ export class TasklistComponent implements OnInit {
       memo: taskList.memo,
       completed: taskList.completed,
     });
+    console.log(taskList.id);
     console.log(this.editingTask);
   }
 

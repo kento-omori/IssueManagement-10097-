@@ -2,7 +2,6 @@ import { Component, ElementRef, AfterViewInit, ViewChild, OnDestroy } from '@ang
 import { FormBuilder, FormGroup, Validators,ReactiveFormsModule } from '@angular/forms';
 import { gantt } from 'dhtmlx-gantt';
 import { SharedTodoGanttService, GanttTask } from '../services/shared-todo-gantt.service';
-import { Data } from '@angular/router';
 
 @Component({
   selector: 'app-gantt-chart',
@@ -23,13 +22,13 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy {
     this.taskForm = this.fb.group({
       id: [null, Validators.required],  // nullは初期値
       text: ['', Validators.required],
-      category: [''],
+      category: ['', Validators.required],
       start_date: [new Date().toISOString().split('T')[0], Validators.required],
       end_date: ['', Validators.required],
-      assignee: [''],
-      status: [''],
-      priority: [''],
-      progress:['']
+      assignee: ['', Validators.required],
+      status: ['', Validators.required],
+      priority: ['', Validators.required],
+      progress:['', Validators.required]
     });
   }
 
@@ -42,7 +41,7 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy {
     gantt.config.scale_height = 50;
     gantt.config.min_column_width = 40;
     gantt.config.scroll_size = 20;
-    gantt.config.drag_progress = false;     // 進捗率の編集を有効化（△のバーをドラッグして進捗率を変更できる）
+    gantt.config.drag_progress = false;     // 進捗率の編集を無効化（△のバーをドラッグして進捗率を変更できる）
     gantt.config.row_height = 36; // 行の高さを明示的に指定
     gantt.config.scales = [
       { unit: "month", step: 1, format: "%Y年%m月" }, //小文字のMにすると、月の表示が01月になる。大文字だと、英語表記

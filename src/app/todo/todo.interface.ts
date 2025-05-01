@@ -32,9 +32,8 @@ export interface Todo {
   assignee: string;
   status: string;
   priority: string;
+  progress: string;
   completed: boolean;
-  createdAt: Date;
-  updatedAt: Date;
   customFields: CustomField[];
   comments: Comment[];
 } 

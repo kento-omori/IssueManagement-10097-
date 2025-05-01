@@ -26,6 +26,7 @@ import { AuthService } from '../../services/auth.service';
                     id="displayName"
                     [(ngModel)]="displayName"
                     name="displayName"
+                    placeholder="（例）山田 太郎"
                     required
                   >
                 </div>
@@ -37,6 +38,7 @@ import { AuthService } from '../../services/auth.service';
                     id="email"
                     [(ngModel)]="email"
                     name="email"
+                    placeholder="example@example.com"
                     required
                   >
                 </div>
@@ -48,6 +50,7 @@ import { AuthService } from '../../services/auth.service';
                     id="password"
                     [(ngModel)]="password"
                     name="password"
+                    placeholder="パスワードを入力"
                     required
                   >
                 </div>
@@ -59,6 +62,7 @@ import { AuthService } from '../../services/auth.service';
                     id="confirmPassword"
                     [(ngModel)]="confirmPassword"
                     name="confirmPassword"
+                    placeholder="パスワードを入力"
                     required
                   >
                 </div>
@@ -79,6 +83,7 @@ import { AuthService } from '../../services/auth.service';
     </div>
   `
 })
+
 export class RegisterComponent {
   email: string = '';
   password: string = '';
@@ -110,6 +115,6 @@ export class RegisterComponent {
   }
 
   navigateToLogin() {
-    this.router.navigate(['/login']);
+    this.router.navigate(['/verify-email']);
   }
 } 
