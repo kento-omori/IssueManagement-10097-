@@ -1,15 +1,18 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { CdkDragDrop, moveItemInArray, DragDropModule } from '@angular/cdk/drag-drop';
+import { CdkDragDrop, moveItemInArray, DragDropModule, CdkDrag, CdkDropList } from '@angular/cdk/drag-drop';
 import { FormsModule } from '@angular/forms';
+import { TasklistFirestoreService } from '../firestore/tasklist-firestore.service';
 
-interface TaskLists {
+export interface TaskLists {
+  id?: string;
   title: string;
   date: string;
   time: string;
   memo: string;
   completed: boolean;
+  order: number;
 }
 
 interface Filters {
@@ -29,11 +32,24 @@ interface Filters {
 @Component({
   selector: 'app-tasklist',
   standalone: true,
-  imports: [ReactiveFormsModule, CommonModule, DragDropModule, FormsModule],
+  imports: [
+    ReactiveFormsModule, 
+    CommonModule, 
+    DragDropModule, 
+    FormsModule,
+    CdkDrag,
+    CdkDropList
+  ],
   templateUrl: './tasklist.component.html',
   styleUrl: './tasklist.component.css'
 })
-export class TasklistComponent {
+
+export class TasklistComponent implements OnInit {
+  
+  constructor(
+    private tasklistFirestoreService: TasklistFirestoreService,
+    private cdr: ChangeDetectorRef
+  ) { }
 
   taskLists: TaskLists[] = [];
   filteredTaskLists: TaskLists[] = [];
@@ -56,6 +72,7 @@ export class TasklistComponent {
   };
 
   taskForm: FormGroup = new FormGroup({
+    id: new FormControl(''),
     title: new FormControl('', [Validators.required]),
     date: new FormControl(''),
     time: new FormControl(''),
@@ -63,9 +80,14 @@ export class TasklistComponent {
     completed: new FormControl(false)
   });
 
+  // 初期設定を最初にする　Firestoreからデータを取得して表示、継続して変更を検知、データ更新
   ngOnInit() {
-    this.applyFilters();
+    this.tasklistFirestoreService.getTasks().subscribe(tasks => {
+      this.taskLists = tasks.sort((a, b) => (a.order || 0) - (b.order || 0));
+      this.filteredTaskLists = [...this.taskLists];
+    });
   }
+
   // フィルタリング機能の関数
   applyFilters(): void {
     let filtered = [...this.taskLists];
@@ -82,7 +104,7 @@ export class TasklistComponent {
     if (this.filters.memo) {
       const searchLower = this.filters.memo.toLowerCase();
       filtered = filtered.filter(task => 
-        task.memo.toLowerCase().includes(searchLower)
+        task.memo?.toLowerCase().includes(searchLower) ?? false
       );
     }
 
@@ -174,7 +196,7 @@ export class TasklistComponent {
     // メモの並び替え
     if (this.filters.memoSort !== 'none') {
       filtered.sort((a, b) => {
-        const comparison = a.memo.toLowerCase().localeCompare(b.memo.toLowerCase());
+        const comparison = a.memo?.toLowerCase().localeCompare(b.memo?.toLowerCase() ?? '') ?? 0;
         return this.filters.memoSort === 'asc' ? comparison : -comparison;
       });
     }
@@ -182,7 +204,9 @@ export class TasklistComponent {
     this.filteredTaskLists = filtered;
   }
 
+  // 並び替えの関数
   sortTasks(column: keyof TaskLists): void {
+    // 昇順・降順の設定
     if (this.sortColumn === column) {
       this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
     } else {
@@ -190,62 +214,148 @@ export class TasklistComponent {
       this.sortDirection = 'asc';
     }
 
-    this.applyFilters();
+    // taskListsも同じ順序でソート
+    this.taskLists.sort((a, b) => {
+      const comparison = String(a[column]).toLowerCase()
+        .localeCompare(String(b[column]).toLowerCase());
+      return this.sortDirection === 'asc' ? comparison : -comparison;
+    });
+
+    // ソート後の新しい順序をFirestoreに保存
+    this.taskLists.forEach((task, index) => {
+      task.order = index;
+      this.tasklistFirestoreService.updateTask(task.id!, { order: index });
+    });
+
+    // ソート状態をリセット
+    this.filters.titleSort = 'none';
+    this.filters.dateSort = 'none';
+    this.filters.timeSort = 'none';
+    this.filters.memoSort = 'none';
+
+    // filteredTaskListsを更新
+    this.filteredTaskLists = [...this.taskLists];
   }
 
+  // タスクの追加、編集
   onSubmit(): void {
     if (this.taskForm.valid) {
       const formValue = this.taskForm.getRawValue();
-      
+      // console.log(formValue),console.log(JSON.stringify(formValue));
+      // タスクの編集
       if (this.editingTask) {
-        const index = this.taskLists.indexOf(this.editingTask);
+        const index = this.taskLists.findIndex(task => task.id === this.editingTask!.id);
+        // console.log(index);
         if (index !== -1) {
-          this.taskLists[index] = { ...formValue };
+          this.taskLists[index] = { 
+            ...formValue,
+            id: this.editingTask.id  // idを明示的に追加
+          };
+          this.tasklistFirestoreService.updateTask(this.editingTask.id!, formValue);
         }
         this.editingTask = null;
+      // タスクの追加
       } else {
         this.taskLists.push(formValue);
+        this.tasklistFirestoreService.addTask(formValue.title, formValue.date, formValue.time, formValue.memo);
       }
       this.taskForm.reset();
       this.applyFilters();
     }
   }
 
+  // タスクの完了状態の変更
   changeStatus(taskList: TaskLists): void {
     taskList.completed = !taskList.completed;
-    this.applyFilters();
-
-    if(taskList.completed){
-      alert('ナイスワーク！');
-    }
+    this.tasklistFirestoreService.updateTask(taskList.id!, { completed: taskList.completed });
+    this.cdr.detectChanges();
+    this.applyFilters();  // filteredTaskListsを更新
   }
 
+  // タスクの削除
   deleteTask(taskList: TaskLists): void {
-    const index = this.taskLists.indexOf(taskList);
+    const index = this.taskLists.findIndex(task => task.id === taskList.id);
     if (index !== -1) {
       this.taskLists.splice(index, 1);
+      this.tasklistFirestoreService.deleteTask(taskList.id!);
       this.applyFilters();
     }
   }
 
+  // タスクの編集
   editTask(taskList: TaskLists): void {
-    this.editingTask = taskList;
+    this.editingTask = { ...taskList };  // スプレッド構文で全プロパティをコピー（idを含む）
     this.taskForm.patchValue({
+      id: taskList.id,
       title: taskList.title,
       date: taskList.date,
       time: taskList.time,
       memo: taskList.memo,
+      completed: taskList.completed,
     });
+    console.log(this.editingTask);
   }
 
+  // タスクの並び替え(drag&drop)
   drop(event: CdkDragDrop<TaskLists[]>) {
+    // 配列の要素を移動
+    moveItemInArray(this.filteredTaskLists, event.previousIndex, event.currentIndex);
     moveItemInArray(this.taskLists, event.previousIndex, event.currentIndex);
+    
+    // 順序を更新してFirestoreに保存
+    this.taskLists.forEach((task, index) => {
+      task.order = index;
+      this.tasklistFirestoreService.updateTask(task.id!, { order: index });
+    });
+
+    // 表示を更新
+    this.cdr.detectChanges();
   }
 
   // 時間を分単位に変換するヘルパーメソッド
   private convertTimeToMinutes(time: string): number {
     const [hours, minutes] = time.split(':').map(Number);
     return hours * 60 + minutes;
+  }
+
+  // フィルタリングが適用されているかチェック
+  isFiltered(): boolean {
+    return !!(
+      this.filters.title ||
+      this.filters.dateFrom ||
+      this.filters.dateTo ||
+      this.filters.timeFrom ||
+      this.filters.timeTo ||
+      this.filters.memo ||
+      this.filters.status !== 'all' ||
+      this.filters.titleSort !== 'none' ||
+      this.filters.dateSort !== 'none' ||
+      this.filters.timeSort !== 'none' ||
+      this.filters.memoSort !== 'none'
+    );
+  }
+
+  isOnlySorted(): boolean {
+    // 並び替えのみが適用されているかチェック
+    return !!(
+      this.filters.titleSort !== 'none' ||
+      this.filters.dateSort !== 'none' ||
+      this.filters.timeSort !== 'none' ||
+      this.filters.memoSort !== 'none'
+    );
+  }
+
+  isSearchFiltered(): boolean {
+    // 検索やフィルタリングが適用されているかチェック
+    return !!(
+      this.filters.title ||
+      this.filters.dateFrom ||
+      this.filters.dateTo ||
+      this.filters.timeFrom ||
+      this.filters.timeTo ||
+      this.filters.memo ||
+      this.filters.status !== 'all'
+    );
   }
 
 }

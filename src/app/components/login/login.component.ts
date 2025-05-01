@@ -79,6 +79,7 @@ export class LoginComponent {
     this.successMessage = '';
     try {
       await this.authService.login(this.email, this.password);
+      console.log('ログイン成功');
     } catch (error) {
       this.error = 'ログインに失敗しました。メールアドレスとパスワードを確認してください。';
     }

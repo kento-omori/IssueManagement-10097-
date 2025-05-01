@@ -39,7 +39,7 @@
       </div>
       <!-- タイトル -->
       <div class="col-md-2">
-        <input type="text" class="form-control" id="title" formControlName="title">
+        <input type="text" class="form-control" id="title" formControlName="title" required>
         <div *ngIf="todoForm.get('title')?.errors?.['required'] && todoForm.get('title')?.touched" class="text-danger small mt-1">
           ＊タイトルが入力されていません
         </div>
@@ -94,7 +94,9 @@
         </div>
       </div>
       <div class="col-md-1">
-        <button type="submit" class="btn btn-outline-primary"><i class="fa fa-plus" aria-hidden="true"></i></button>
+        <button type="submit" class="btn btn-outline-primary" [disabled]="!todoForm.valid">
+          <i class="fa fa-plus" aria-hidden="true"></i>
+        </button>
       </div>
     </div>  
     <br>

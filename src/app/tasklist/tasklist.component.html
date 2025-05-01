@@ -47,7 +47,7 @@
       </div>
     </form>
     <br>
-    <table class="table">
+    <table class="table" cdkDropList (cdkDropListDropped)="drop($event)" [cdkDropListDisabled]="isSearchFiltered()">
       
     <!-- テーブルヘッダー -->
     <thead class="table-primary fw-bold" style="text-align: center;">
@@ -57,7 +57,7 @@
             <span (click)="sortTasks('title')" style="cursor: pointer;">タイトル</span>
             <div class="dropdown ms-2">
               <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="fa fa-filter"></i>
+                <i class="fa fa-filter" [ngClass]="{'text-primary': filters.title || filters.titleSort !== 'none'}"></i>
               </button>
               <div class="dropdown-menu p-2" style="min-width: 200px;">
                 <div class="input-group mb-2">
@@ -84,7 +84,7 @@
             <span (click)="sortTasks('date')" style="cursor: pointer;">期限</span>
             <div class="dropdown ms-2">
               <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="fa fa-filter"></i>
+                <i class="fa fa-filter" [ngClass]="{'text-primary': filters.dateFrom || filters.dateTo || filters.dateSort !== 'none'}"></i>
               </button>
               <div class="dropdown-menu p-2" style="min-width: 200px;">
                 <input type="date" class="form-control mb-2" placeholder="開始日" [(ngModel)]="filters.dateFrom" (change)="applyFilters()">
@@ -107,7 +107,7 @@
             <span (click)="sortTasks('time')" style="cursor: pointer;">時間</span>
             <div class="dropdown ms-2">
               <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="fa fa-filter"></i>
+                <i class="fa fa-filter" [ngClass]="{'text-primary': filters.timeFrom || filters.timeTo || filters.timeSort !== 'none'}"></i>
               </button>
               <div class="dropdown-menu p-2" style="min-width: 200px;">
                 <input type="time" class="form-control mb-2" placeholder="開始時間" [(ngModel)]="filters.timeFrom" (change)="applyFilters()">
@@ -130,7 +130,7 @@
             <span (click)="sortTasks('memo')" style="cursor: pointer;">メモ</span>
             <div class="dropdown ms-2">
               <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="fa fa-filter"></i>
+                <i class="fa fa-filter" [ngClass]="{'text-primary': filters.memo || filters.memoSort !== 'none'}"></i>
               </button>
               <div class="dropdown-menu p-2" style="min-width: 200px;">
                 <div class="input-group mb-2">
@@ -157,7 +157,7 @@
             <span>完了</span>
             <div class="dropdown ms-2">
               <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="fa fa-filter"></i>
+                <i class="fa fa-filter" [ngClass]="{'text-primary': filters.status !== 'all'}"></i>
               </button>
               <div class="dropdown-menu p-2">
                 <select class="form-select" [(ngModel)]="filters.status" (change)="applyFilters()">
@@ -174,8 +174,11 @@
       </tr>
     </thead>
     <!-- タスクリスト -->
-    <tbody style="text-align: center; vertical-align: middle;" cdkDropList (cdkDropListDropped)="drop($event)">
-      <tr *ngFor="let taskList of filteredTaskLists" [ngClass]="{'table-secondary': taskList.completed}" cdkDrag>
+    <tbody style="text-align: center; vertical-align: middle;">
+      <tr *ngFor="let taskList of filteredTaskLists" 
+          [ngClass]="{'table-secondary': taskList.completed}"
+          cdkDrag
+          [cdkDragDisabled]="isSearchFiltered()">
         <td class="col-3" style="text-align: left;">{{taskList.title}}</td>
         <td class="col-1" >{{taskList.date}}</td>
         <td class="col-1" >{{taskList.time}}</td>

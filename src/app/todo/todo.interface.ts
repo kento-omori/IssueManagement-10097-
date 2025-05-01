@@ -23,6 +23,7 @@ export interface Reply {
 }
 
 export interface Todo {
+  id?: string;
   managementNumber: number;
   title: string;
   category: string;
@@ -32,6 +33,8 @@ export interface Todo {
   status: string;
   priority: string;
   completed: boolean;
+  createdAt: Date;
+  updatedAt: Date;
   customFields: CustomField[];
   comments: Comment[];
 } 

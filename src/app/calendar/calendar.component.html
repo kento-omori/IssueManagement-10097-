@@ -2,3 +2,46 @@
 <br>
 
 <full-calendar [options]="calendarOptions" [events]="events"></full-calendar>
+
+<!-- 新規イベント追加フォーム -->
+<div *ngIf="showEventForm" class="event-form">
+  <h3>新規予定の追加</h3>
+  <form (ngSubmit)="addEvent()">
+    <div>
+      <label for="title">タイトル:</label>
+      <input type="text" id="title" [(ngModel)]="newEvent.title" name="title" required>
+    </div>
+    <div>
+      <label for="start">開始日:</label>
+      <input type="date" id="start" [(ngModel)]="newEvent.start" name="start" required>
+    </div>
+    <div>
+      <label for="end">終了日:</label>
+      <input type="date" id="end" [(ngModel)]="newEvent.end" name="end" required>
+    </div>
+    <button type="submit">追加</button>
+    <button type="button" (click)="showEventForm = false">キャンセル</button>
+  </form>
+</div>
+
+<!-- イベント編集フォーム -->
+<div *ngIf="showEditForm && editingEvent" class="event-form">
+  <h3>予定の編集</h3>
+  <form (ngSubmit)="updateEvent()">
+    <div>
+      <label for="edit-title">タイトル:</label>
+      <input type="text" id="edit-title" [(ngModel)]="editingEvent.title" name="title" required>
+    </div>
+    <div>
+      <label for="edit-start">開始日:</label>
+      <input type="date" id="edit-start" [(ngModel)]="editingEvent.start" name="start" required>
+    </div>
+    <div>
+      <label for="edit-end">終了日:</label>
+      <input type="date" id="edit-end" [(ngModel)]="editingEvent.end" name="end" required>
+    </div>
+    <button type="submit">更新</button>
+    <button type="button" class="delete-btn" (click)="deleteEvent(editingEvent.id!); showEditForm = false">削除</button>
+    <button type="button" (click)="showEditForm = false">キャンセル</button>
+  </form>
+</div>

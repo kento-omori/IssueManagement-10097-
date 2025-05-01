@@ -5,12 +5,16 @@ import { Router } from '@angular/router';
 @Injectable({
   providedIn: 'root'
 })
+
 export class AuthService {
+
+  
   // ログイン状態の監視
   authState$;
 
   constructor(private auth: Auth, private router: Router) {
     this.authState$ = authState(this.auth);
+    console.log(this.authState$);
   }
 
   // 現在のユーザーを取得

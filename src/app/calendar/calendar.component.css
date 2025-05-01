@@ -1,0 +1,73 @@
+.event-form {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.event-form form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.event-form div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.event-form label {
+  font-weight: bold;
+}
+
+.event-form input {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.event-form button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #007bff;
+  color: white;
+  margin-right: 10px;
+}
+
+.event-form button[type="button"] {
+  background-color: #6c757d;
+}
+
+.event-form button.delete-btn {
+  background-color: #dc3545;
+}
+
+.event-tooltip {
+  background: white;
+  padding: 8px;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+.event-tooltip button {
+  margin: 0 5px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #007bff;
+  color: white;
+}
+
+.event-tooltip button:last-child {
+  background-color: #dc3545;
+}

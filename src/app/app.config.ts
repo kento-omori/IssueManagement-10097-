@@ -4,7 +4,8 @@ import { routes } from './app.routes';
 import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
 import { provideAuth, getAuth } from '@angular/fire/auth';
 import { provideFirestore, getFirestore } from '@angular/fire/firestore';
-import { provideAnalytics, getAnalytics } from '@angular/fire/analytics';
+// import { provideAnalytics, getAnalytics } from '@angular/fire/analytics';
+// import { ScreenTrackingService, UserTrackingService } from '@angular/fire/analytics';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCwgWS2A4T-TtIN7mM1cdJeP6FoLYlvGBE",
@@ -12,8 +13,8 @@ const firebaseConfig = {
   projectId: "kensyu10097",
   storageBucket: "kensyu10097.firebasestorage.app",
   messagingSenderId: "362602686023",
-  appId: "1:362602686023:web:49fb5ffeba166fb496f362",
-  measurementId: "G-GS6LWQ22JF"
+  appId: "1:362602686023:web:34584773113116a096f362",
+  measurementId: "G-KJ7S5Z88Q6"
 };
 
 export const appConfig: ApplicationConfig = {
@@ -23,6 +24,8 @@ export const appConfig: ApplicationConfig = {
     provideFirebaseApp(() => initializeApp(firebaseConfig)),
     provideAuth(() => getAuth()),
     provideFirestore(() => getFirestore()),
-    provideAnalytics(() => getAnalytics())
+    // provideAnalytics(() => getAnalytics()),
+    // ScreenTrackingService,
+    // UserTrackingService,
   ]
 };
