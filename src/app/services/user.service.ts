@@ -39,7 +39,7 @@ export class UserService {
     return this.auth.currentUser?.uid || null;
   }
   
-  // タスクリストをユーザーのサブコレクションに追加
+  // tasklistをユーザーのサブコレクションに追加
   async addTaskToUser(task: any): Promise<string> {
     const userId = this.getCurrentUserId();
     if (!userId) throw new Error('ユーザーが認証されていません');
@@ -52,7 +52,7 @@ export class UserService {
     return docRef.id;
   }
 
-  // ユーザーのタスクリストを取得
+  // ユーザーのtasklistを取得
   async getUserTasks(): Promise<any[]> {
     const userId = this.getCurrentUserId();
     if (!userId) throw new Error('ユーザーが認証されていません');
@@ -65,13 +65,56 @@ export class UserService {
     }));
   }
 
-//   // ユーザーのサブコレクションにタスクを追加
-//   async addTeamToUser(uid: string, team: any): Promise<string> {
-//     const teamsRef = collection(this.firestore, `users/${uid}/teams`);
-//     const docRef = await addDoc(teamsRef, {
-//       ...team,
-//       createdAt: new Date()
-//     });
-//     return docRef.id;
-//   }
+  // todoをユーザーのサブコレクションに追加
+  async addTodoToUser(todo: any): Promise<string> {
+    const userId = this.getCurrentUserId();
+    if (!userId) throw new Error('ユーザーが認証されていません');
+
+    const todosRef = collection(this.firestore, `users/${userId}/todos`);
+    const docRef = await addDoc(todosRef, {
+      ...todo,
+      createdAt: new Date()
+    });
+    return docRef.id;
+  }
+
+  // ユーザーのtodoリストを取得
+  async getUserTodos(): Promise<any[]> {
+    const userId = this.getCurrentUserId();
+    if (!userId) throw new Error('ユーザーが認証されていません');
+  
+    const todosRef = collection(this.firestore, `users/${userId}/todos`);
+    const snapshot = await getDocs(todosRef);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  }
+
+  // calendarをユーザーのサブコレクションに追加
+  async addCalendarToUser(calendar: any): Promise<string> {
+    const userId = this.getCurrentUserId();
+    if (!userId) throw new Error('ユーザーが認証されていません');
+  
+    const calendarRef = collection(this.firestore, `users/${userId}/calendar`);
+    const docRef = await addDoc(calendarRef, {
+      ...calendar,
+      createdAt: new Date()
+    });
+      return docRef.id;
+    }
+  
+    // ユーザーのcalendarを取得
+    async getUserCalendar(): Promise<any[]> {
+      const userId = this.getCurrentUserId();
+    if (!userId) throw new Error('ユーザーが認証されていません');
+  
+    const calendarRef = collection(this.firestore, `users/${userId}/calendar`);
+    const snapshot = await getDocs(calendarRef);
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    }
+
 }

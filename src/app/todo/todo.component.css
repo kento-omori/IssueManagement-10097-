@@ -24,3 +24,118 @@ button {
     outline: none;
     box-shadow: none;
 }
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1040;
+  }
+  
+  .modal {
+    z-index: 1050;
+  }
+  
+  .comment-item {
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: #ffffff;
+  }
+  
+  .reply-item {
+    border-left: 3px solid #dee2e6;
+    padding-left: 10px;
+    background-color: #f8f9fa;
+    border-radius: 0 4px 4px 0;
+  }
+  
+  .comment-body, .reply-body {
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    margin-top: 5px;
+    padding: 8px;
+  }
+  
+  .reply-form {
+    margin-top: 8px;
+  }
+  
+  .existing-comments {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  
+  .modal-footer {
+    position: static;
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-top: 1px solid #dee2e6;
+  }
+  
+  .btn {
+    position: static;
+    display: inline-block;
+  }
+  
+  .cdk-drag-preview {
+    display: table-row;
+    background-color: white;
+    box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2),
+                0 8px 10px 1px rgba(0, 0, 0, 0.14),
+                0 3px 14px 2px rgba(0, 0, 0, 0.12);
+  }
+  
+  .cdk-drag-placeholder {
+    opacity: 0;
+  }
+  
+  .cdk-drag-animating {
+    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+  }
+  
+  .todo-list.cdk-drop-list-dragging tr:not(.cdk-drag-placeholder) {
+    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+  }
+
+.status-in-progress {
+  background-color: #fff3cd; /* 明るい黄色 */
+  color: #856404;
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+.status-review {
+  background-color: #ffe0ef; /* 明るいピンク */
+  color: #b3005e;
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+.status-done {
+  background-color: #e0e0e0; /* グレー */
+  color: #333;
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+
+.priority-high {
+  background-color: #ff4444; /* 赤 */
+  color: #fff;
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+.priority-medium {
+  background-color: #ffd600; /* 通常の黄色 */
+  color: #fff;
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+.priority-low {
+  background-color: #00C851; /* 緑 */
+  color: #fff;
+  border-radius: 6px;
+  padding: 2px 8px;
+}

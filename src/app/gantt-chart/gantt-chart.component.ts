@@ -1,35 +1,102 @@
-import { Component, ElementRef, AfterViewInit, ViewChild, OnDestroy } from '@angular/core';
+import { Component, ElementRef, AfterViewInit, ViewChild, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators,ReactiveFormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 import { gantt } from 'dhtmlx-gantt';
-import { SharedTodoGanttService, GanttTask } from '../services/shared-todo-gantt.service';
+import { IdManagerService } from '../services/id-manager.service';
+import { TodoFirestoreService } from '../services/todo-firestore.service';
+import { Todo } from '../todo/todo.interface';
+import { firstValueFrom, of } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-gantt-chart',
   templateUrl: './gantt-chart.component.html',
   styleUrls: ['./gantt-chart.component.css'],
   standalone: true,
-  imports:[ReactiveFormsModule]
+  imports:[ReactiveFormsModule, CommonModule]
 })
-export class GanttChartComponent implements AfterViewInit, OnDestroy {
-  @ViewChild('ganttChart', { static: true }) ganttChart!: ElementRef;
+export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
 
-  taskForm: FormGroup;
+  @ViewChild('ganttChart', { static: true }) ganttChart!: ElementRef;
+  taskForm!: FormGroup;
 
   constructor(
-    private sharedTodoGanttService: SharedTodoGanttService,
-    private fb: FormBuilder
+    private idManagerService: IdManagerService,
+    private fb: FormBuilder,
+    private todoFirestoreService: TodoFirestoreService
   ) {
-    this.taskForm = this.fb.group({
-      id: [null, Validators.required],  // nullは初期値
+    this.initForm();
+  }
+
+  private createForm(): FormGroup {
+    return this.fb.group({
+      id: ['', Validators.required],  // 管理番号を入力可能に変更
       text: ['', Validators.required],
       category: ['', Validators.required],
       start_date: [new Date().toISOString().split('T')[0], Validators.required],
       end_date: ['', Validators.required],
       assignee: ['', Validators.required],
-      status: ['', Validators.required],
-      priority: ['', Validators.required],
-      progress:['', Validators.required]
+      status: ['未着手', Validators.required],
+      priority: ['普通', Validators.required],
+      progress: [0, [Validators.required, Validators.min(0), Validators.max(100)]]
     });
+  }
+
+  private initForm() {
+    this.taskForm = this.createForm();
+    this.setupIdWatcher();
+  }
+
+  private setupIdWatcher() {
+    this.taskForm.get('id')?.valueChanges
+      .pipe(
+        switchMap(id => {
+          if (!id) {
+            this.taskForm.patchValue({
+              text: '',
+              category: '',
+              start_date: new Date().toISOString().split('T')[0],
+              end_date: '',
+              assignee: '',
+              status: '未着手',
+              priority: '普通',
+              progress: 0
+            }, { emitEvent: false });
+            return of(null);
+          }
+          return this.todoFirestoreService.getTodos();
+        })
+      )
+      .subscribe(tasksOrNull => {
+        const id = this.taskForm.get('id')?.value;
+        if (!tasksOrNull) {
+          return;
+        }
+        const task = tasksOrNull.find((t: any) => Number(t.id) === Number(id));
+        if (task) {
+          this.taskForm.patchValue({
+            text: task.text,
+            category: task.category,
+            start_date: task.start_date,
+            end_date: task.end_date,
+            assignee: task.assignee,
+            status: task.status,
+            priority: task.priority,
+            progress: task.progress ? task.progress * 100 : 0
+          }, { emitEvent: false });
+        } else {
+          this.taskForm.patchValue({
+            text: '',
+            category: '',
+            start_date: new Date().toISOString().split('T')[0],
+            end_date: '',
+            assignee: '',
+            status: '未着手',
+            priority: '普通',
+            progress: 0
+          }, { emitEvent: false });
+        }
+      });
   }
 
   private resizeHandler = () => {
@@ -37,12 +104,16 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy {
   };
 
   ngAfterViewInit() {
+    console.log('ngAfterViewInit');
     gantt.config.date_format = "%Y-%m-%d";
     gantt.config.scale_height = 50;
     gantt.config.min_column_width = 40;
     gantt.config.scroll_size = 20;
     gantt.config.drag_progress = false;     // 進捗率の編集を無効化（△のバーをドラッグして進捗率を変更できる）
+    gantt.config.drag_move = true;          // タスクバーの移動を有効化
+    gantt.config.drag_resize = true;        // タスクバーのリサイズを有効化
     gantt.config.row_height = 36; // 行の高さを明示的に指定
+    gantt.config.order_branch = true;
     gantt.config.scales = [
       { unit: "month", step: 1, format: "%Y年%m月" }, //小文字のMにすると、月の表示が01月になる。大文字だと、英語表記
       { unit: "day", step: 1, format: "%j" }
@@ -63,7 +134,7 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy {
           return `${yyyy}-${mm}-${dd}`;
         }
       },
-      { name: "assignee", label: "担当者", width: 80, align: "center" },
+      { name: "assignee", label: "担当者", width: 120, align: "center" },
       { name: "status", label: "ステータス", width: 80, align: "center",
         template: function(obj: any) {
           const statuses: { [key: string]: string } = {
@@ -108,11 +179,78 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy {
       }
     ];
 
-    gantt.attachEvent("onBeforeTaskUpdate", function(id, item) {
-      if (item.progress! > 1) {
-        item.progress = item.progress! / 100;
+    // タスクの更新イベントを監視
+    gantt.attachEvent("onAfterTaskUpdate", async (id: string, item: any) => {
+      try {
+        console.log('Task updated:', item);
+        
+        // dbidを使用してFirestoreのドキュメントを更新
+        const taskId = item.dbid || id;
+        
+        // Firestoreに保存するデータを準備
+        const updateData: any = {
+          status: item.status,
+          progress: item.progress
+        };
+
+        // 日付が変更された場合は更新データに含める
+        if (item.start_date) {
+          updateData.start_date = item.start_date.toISOString().split('T')[0];
+        };
+        if (item.end_date) {
+          // end_dateは1日前の日付を保存
+          const endDate = new Date(item.end_date);
+          endDate.setDate(endDate.getDate() - 1);
+          updateData.end_date = endDate.toISOString().split('T')[0];
+        };
+
+        console.log('Updating task:', taskId, updateData);
+        
+        // Firestoreのドキュメントを更新
+        await this.todoFirestoreService.updateTodo(taskId, updateData);
+        console.log('Firestore updated successfully');
+      } catch (error) {
+        console.error('Error updating task in Firestore:', error);
+        // エラーが発生した場合は元の値に戻す
+        gantt.refreshData();
       }
+    });
+
+    // 進捗率が変更される前のイベント
+    gantt.attachEvent("onBeforeTaskUpdate", (id: string, item: any) => {
+      console.log('Before task update:', item);
+      
+      // 進捗率の正規化
+      if (item.progress > 1) {
+        item.progress = item.progress / 100;
+      }
+      
+      if (typeof item.progress === 'string') {
+        item.progress = parseFloat(item.progress) / 100;
+      }
+      
+    // ステータスと進捗率の同期
+      if (item.progress === 1) {
+        item.status = "完了";
+      }
+      
       return true;
+    });
+
+    //　ドラックアンドドロップでの順番変更をfirestoreに反映
+    const self = this;  // thisを使うと、ganttのthisと同じになる
+    gantt.attachEvent("onRowDragEnd", async function(id: string, target: any) {
+      const orderArr = gantt.getChildren(0);
+      const updates = [];
+      for (let i = 0; i < orderArr.length; i++) {
+        const task = gantt.getTask(orderArr[i]);
+        if (task['dbid']) {
+          updates.push({ dbid: task['dbid'], order: i });
+        }
+      }
+      if (updates.length > 0) {
+        await self.todoFirestoreService.batchUpdateOrder(updates);
+      }
     });
 
     // タスクの色を優先度に応じて変更
@@ -142,15 +280,39 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy {
       .process {background-color: #ffbb33; color: white; padding: 2px 6px; border-radius: 3px;}
       .review {background-color: #FF00FF; color: white; padding: 2px 6px; border-radius: 3px;}
       .done {background-color: #808080; color: white; padding: 2px 6px; border-radius: 3px;}
+      .task-info-popup {
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        padding: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        max-width: 400px;
+      }
+      .task-info-popup h3 {
+        margin: 0 0 10px 0;
+        color: #333;
+      }
+      .task-info-popup p {
+        margin: 5px 0;
+        color: #666;
+      }
+      .task-info-popup .label {
+        font-weight: bold;
+        color: #333;
+        display: inline-block;
+        width: 80px;
+      }
     `;
     document.head.appendChild(style);
 
-    // tasksを使ってgantt.parse({data: tasks}) などでガントチャートを更新
-    this.sharedTodoGanttService.tasks$.subscribe((tasks: GanttTask[]) => {
+    // firestoreからタスクを取得してガントチャートを更新
+    this.todoFirestoreService.getTodos().subscribe((tasks: Todo[]) => {
       if (!tasks || tasks.length === 0) {
         gantt.clearAll();
         return;
       }
+      // order順でソート
+      tasks.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
       // 最小開始日・最大終了日を取得
       const minStartDate = tasks.reduce((min, task) => {
@@ -169,65 +331,121 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy {
 
       // 全てのタスクのend_dateを+1日する
       const fixedTasks = tasks.map(task => {
-      const date = new Date(task.end_date);
-      date.setDate(date.getDate() + 1);
-
-      // yyyy-mm-dd形式に戻す
-      const yyyy = date.getFullYear();
-      const mm = ('0' + (date.getMonth() + 1)).slice(-2);
-      const dd = ('0' + date.getDate()).slice(-2);
-      return { ...task, end_date: `${yyyy}-${mm}-${dd}` };
-    });
-
+        const date = new Date(task.end_date);
+        date.setDate(date.getDate() + 1);
+        // yyyy-mm-dd形式に戻す
+        const yyyy = date.getFullYear();
+        const mm = ('0' + (date.getMonth() + 1)).slice(-2);
+        const dd = ('0' + date.getDate()).slice(-2);
+        return { ...task, end_date: `${yyyy}-${mm}-${dd}` };
+      });
       // ガントチャートの初期化・描写
       gantt.init(this.ganttChart.nativeElement);
+      gantt.clearAll();
       gantt.parse({ data: fixedTasks });
       gantt.render();
     });
-    
-    // gantt.attachEvent("onBeforeTaskUpdate", function(id, item) {
-    //   if (item.progress! <= 1) {
-    //     item.progress = Math.round(item.progress! * 100);
-    //   }
-    //   return true; // 更新を許可
-    // });
-    
-    // gantt.attachEvent("onAfterTaskUpdate", function(id, item) {
-    //   // 進捗率が100%になったら
-    //   if (item.progress! >= 100 && item['status'] !== "完了") {
-    //     item['_prevStatus'] = item['status'];
-    //     item['status'] = "完了";
-    //     gantt.updateTask(id);
-    //   }
-    //   // 100%未満になったら
-    //   if (item.progress! < 100 && item['status'] === "完了" && item['_prevStatus']) {
-    //     item['status'] = item['_prevStatus'];
-    //     delete item['_prevStatus'];
-    //     gantt.updateTask(id);
-    //   }
-    // });
+       
+    // ダブルクリックでタスク情報のポップアップを表示
+    let isPopupVisible = false;  // ポップアップの表示状態を管理
 
-    // ダブルクリックで編集フォームを開かないようにする
-    gantt.attachEvent("onTaskDblClick", function() { return false; });
+    // クリックイベントでポップアップを閉じる
+    gantt.attachEvent("onEmptyClick", () => {
+      if (isPopupVisible) {
+        gantt.message.hide("");
+        isPopupVisible = false;
+      }
+      return true;
+    });
+
+    gantt.attachEvent("onTaskClick", (id: string, e: any) => {
+      // 既存のポップアップがあれば閉じる
+      if (isPopupVisible) {
+        gantt.message.hide("");
+        isPopupVisible = false;
+        return false;
+      }
+      const task = gantt.getTask(id);      
+      // 日付のフォーマット
+      const formatDate = (dateStr: string) => {
+        const date = new Date(dateStr);
+        const yyyy = date.getFullYear();
+        const mm = ('0' + (date.getMonth() + 1)).slice(-2);
+        const dd = ('0' + date.getDate()).slice(-2);
+        return `${yyyy}-${mm}-${dd}`;
+      };
+      // 日付の処理
+      const startDate = String(task['start_date']);
+      const endDateStr = String(task['end_date']);
+      const endDate = new Date(endDateStr);
+      endDate.setDate(endDate.getDate() - 1);
+      const html = `
+        <div class="task-info-popup">
+          <h3>${task['text']}</h3>
+          <p><span class="label">管理番号:</span> ${task['id']}</p>
+          <p><span class="label">カテゴリ:</span> ${task['category']}</p>
+          <p><span class="label">開始日:</span> ${formatDate(startDate)}</p>
+          <p><span class="label">期限:</span> ${formatDate(endDate.toISOString())}</p>
+          <p><span class="label">担当者:</span> ${task['assignee']}</p>
+          <p><span class="label">ステータス:</span> ${task['status']}</p>
+          <p><span class="label">優先度:</span> ${task['priority']}</p>
+          <p><span class="label">進捗率:</span> ${Math.round((task['progress'] || 0) * 100)}%</p>
+        </div>
+      `;
+
+      gantt.message({
+        text: html,
+        expire: -1,  // ポップアップを自動で閉じない
+        type: "info"
+      });      
+      isPopupVisible = true;
+      return false; // デフォルトの編集フォームを表示しない
+    });
+
+    gantt.attachEvent("onTaskDblClick", (id: string, e: any) => {
+      return false;
+    });
     
     window.addEventListener('resize', this.resizeHandler);
     setTimeout(() => gantt.setSizes(), 100);
   }
 
-  addTask() {
+  async addTask() {
     if (this.taskForm.valid) {
-      const formValue = this.taskForm.value;
-      const newTask: GanttTask = {
-        ...formValue,
-        progress: Number(formValue.progress) / 100
-      };
-      const current = this.sharedTodoGanttService['tasksSubject'].getValue();
-      this.sharedTodoGanttService.setTasks([...current, newTask]);
-      this.taskForm.reset({ status: '未着手', priority: '普通', progress: '0' }); //日付は再入力しないようにすること　→　バグが出る
+      try {
+        // Firestoreからタスクを取得
+        const tasks = await firstValueFrom(this.todoFirestoreService.getTodos());
+        const maxOrder = tasks.length > 0
+          ? Math.max(...tasks.map((task: any) => task.order ?? 0))
+          : 0;
+
+        const formValue = { ...this.taskForm.getRawValue() };
+        formValue.progress = formValue.progress / 100; // 進捗率を0-1の範囲に変換
+        const id = formValue.id;
+        // 既存タスクかどうかを判定
+        const existing = tasks.find((t: any) => Number(t.id) === Number(id));
+        
+        if (existing) {
+          // 既存タスクならupdate
+          await this.todoFirestoreService.updateTodo(existing.dbid!, formValue);
+        } else {
+          // 新規ならadd（orderをセット）
+          formValue.order = maxOrder + 1;
+          await this.todoFirestoreService.addTodo(formValue);
+        }
+        this.initForm();  // フォームを再初期化して新しい管理番号を取得
+      } catch (error) {
+        console.error('Error adding/updating task:', error);
+      }
     }
   }
 
   ngOnDestroy() {
     window.removeEventListener('resize', this.resizeHandler);
+  }
+
+  // ngOnInitではinitForm()だけ呼ぶ
+  ngOnInit() {
+    this.initForm();
   }
 } 

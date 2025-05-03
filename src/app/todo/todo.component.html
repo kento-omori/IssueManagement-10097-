@@ -35,12 +35,12 @@
     <div class="row g-3" style="text-align: center;">
       <!-- 管理番号 -->
       <div class="col-md-1">
-        <input type="number" class="form-control text-center" id="managementNumber" formControlName="managementNumber" min="1" step="1">
+        <input type="number" class="form-control text-center" id="id" formControlName="id" min="1" step="1">
       </div>
       <!-- タイトル -->
       <div class="col-md-2">
-        <input type="text" class="form-control" id="title" formControlName="title" required>
-        <div *ngIf="todoForm.get('title')?.errors?.['required'] && todoForm.get('title')?.touched" class="text-danger small mt-1">
+        <input type="text" class="form-control" id="text" formControlName="text" required>
+        <div *ngIf="todoForm.get('text')?.errors?.['required'] && todoForm.get('text')?.touched" class="text-danger small mt-1">
           ＊タイトルが入力されていません
         </div>
       </div>
@@ -53,18 +53,18 @@
       </div>
       <!-- 開始日 -->
       <div class="col-md-2">
-        <input type="date" class="form-control" id="startDate" formControlName="startDate">
-        <div *ngIf="todoForm.get('startDate')?.errors?.['required'] && todoForm.get('startDate')?.touched" class="text-danger small mt-1">
+        <input type="date" class="form-control" id="start_date" formControlName="start_date">
+        <div *ngIf="todoForm.get('start_date')?.errors?.['required'] && todoForm.get('start_date')?.touched" class="text-danger small mt-1">
           ＊開始日が入力されていません
         </div>
       </div>
       <!-- 期限 -->
       <div class="col-md-2">
-        <input type="date" class="form-control" id="endDate" formControlName="endDate">
-        <div *ngIf="todoForm.get('endDate')?.errors?.['required'] && todoForm.get('endDate')?.touched" class="text-danger small mt-1">
+        <input type="date" class="form-control" id="end_date" formControlName="end_date">
+        <div *ngIf="todoForm.get('end_date')?.errors?.['required'] && todoForm.get('end_date')?.touched" class="text-danger small mt-1">
           ＊期限が入力されていません
         </div>
-        <div *ngIf="todoForm.errors?.['dateInvalid'] && todoForm.get('endDate')?.touched" class="text-danger small mt-1">
+        <div *ngIf="todoForm.errors?.['dateInvalid'] && todoForm.get('end_date')?.touched" class="text-danger small mt-1">
           ＊期限は開始日より後の日付を選択してください
         </div>
       </div>
@@ -193,14 +193,15 @@
     <tr>
       <th class="col-md-1 bg-success text-white">
         <div class="d-flex align-items-center justify-content-center">
-          <span (click)="sortTodos('managementNumber')" style="cursor: pointer;">管理番号</span>
+          <span (click)="sortTodos('id')" style="cursor: pointer;">管理番号</span>
           <div class="dropdown ms-2">
             <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="fa fa-filter"></i>
+              <i class="fa fa-filter"
+                 [ngStyle]="{ color: filters.id || filters.idSort !== 'none' ? 'yellow' : 'white' }"></i>
             </button>
             <div class="dropdown-menu p-2" style="min-width: 200px;">
               <div class="input-group mb-2">
-                <input type="number" class="form-control" placeholder="管理番号で検索..." [(ngModel)]="filters.managementNumber" (keyup.enter)="applyFilters()">
+                <input type="number" class="form-control" placeholder="管理番号で検索..." [(ngModel)]="filters.id" (keyup.enter)="applyFilters()">
                 <button class="btn btn-outline-secondary" type="button" (click)="applyFilters()">
                   <i class="fa fa-search"></i>
                 </button>
@@ -208,7 +209,7 @@
               <hr>
               <div class="mb-2">
                 <label class="form-label">並び替え:</label>
-                <select class="form-select" [(ngModel)]="filters.managementNumberSort" (change)="applyFilters()">
+                <select class="form-select" [(ngModel)]="filters.idSort" (change)="applyFilters()">
                   <option value="none">指定なし</option>
                   <option value="asc">昇順</option>
                   <option value="desc">降順</option>
@@ -220,14 +221,15 @@
       </th>
       <th class="col-md-1 bg-success text-white">
         <div class="d-flex align-items-center justify-content-center">
-          <span (click)="sortTodos('title')" style="cursor: pointer;">タイトル</span>
+          <span (click)="sortTodos('text')" style="cursor: pointer;">タイトル</span>
           <div class="dropdown ms-2">
             <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="fa fa-filter"></i>
+              <i class="fa fa-filter"
+                 [ngStyle]="{ color: filters.text || filters.textSort !== 'none' ? 'yellow' : 'white' }"></i>
             </button>
             <div class="dropdown-menu p-2" style="min-width: 200px;">
               <div class="input-group mb-2">
-                <input type="text" class="form-control" placeholder="タイトルで検索..." [(ngModel)]="filters.title" (keyup.enter)="applyFilters()">
+                <input type="text" class="form-control" placeholder="タイトルで検索..." [(ngModel)]="filters.text" (keyup.enter)="applyFilters()">
                 <button class="btn btn-outline-secondary" type="button" (click)="applyFilters()">
                   <i class="fa fa-search"></i>
                 </button>
@@ -235,7 +237,7 @@
               <hr>
               <div class="mb-2">
                 <label class="form-label">並び替え:</label>
-                <select class="form-select" [(ngModel)]="filters.titleSort" (change)="applyFilters()">
+                <select class="form-select" [(ngModel)]="filters.textSort" (change)="applyFilters()">
                   <option value="none">指定なし</option>
                   <option value="asc">昇順</option>
                   <option value="desc">降順</option>
@@ -250,7 +252,8 @@
           <span (click)="sortTodos('category')" style="cursor: pointer;">カテゴリ</span>
           <div class="dropdown ms-2">
             <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="fa fa-filter"></i>
+              <i class="fa fa-filter"
+                 [ngStyle]="{ color: filters.category || filters.categorySort !== 'none' ? 'yellow' : 'white' }"></i>
             </button>
             <div class="dropdown-menu p-2" style="min-width: 200px;">
               <div class="input-group mb-2">
@@ -274,18 +277,19 @@
       </th>
       <th class="col-md-1 bg-success text-white">
         <div class="d-flex align-items-center justify-content-center">
-          <span (click)="sortTodos('startDate')" style="cursor: pointer;">開始日</span>
+          <span (click)="sortTodos('start_date')" style="cursor: pointer;">開始日</span>
           <div class="dropdown ms-2">
             <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="fa fa-filter"></i>
+              <i class="fa fa-filter"
+                 [ngStyle]="{ color: filters.start_dateFrom || filters.start_dateTo || filters.start_dateSort !== 'none' ? 'yellow' : 'white' }"></i>
             </button>
             <div class="dropdown-menu p-2" style="min-width: 200px;">
-              <input type="date" class="form-control mb-2" placeholder="開始日から" [(ngModel)]="filters.startDateFrom" (change)="applyFilters()">
-              <input type="date" class="form-control mb-2" placeholder="開始日まで" [(ngModel)]="filters.startDateTo" (change)="applyFilters()">
+              <input type="date" class="form-control mb-2" placeholder="開始日から" [(ngModel)]="filters.start_dateFrom" (change)="applyFilters()">
+              <input type="date" class="form-control mb-2" placeholder="開始日まで" [(ngModel)]="filters.start_dateTo" (change)="applyFilters()">
               <hr>
               <div class="mb-2">
                 <label class="form-label">並び替え:</label>
-                <select class="form-select" [(ngModel)]="filters.startDateSort" (change)="applyFilters()">
+                <select class="form-select" [(ngModel)]="filters.start_dateSort" (change)="applyFilters()">
                   <option value="none">指定なし</option>
                   <option value="asc">昇順</option>
                   <option value="desc">降順</option>
@@ -297,18 +301,19 @@
       </th>
       <th class="col-md-1 bg-success text-white">
         <div class="d-flex align-items-center justify-content-center">
-          <span (click)="sortTodos('endDate')" style="cursor: pointer;">期限</span>
+          <span (click)="sortTodos('end_date')" style="cursor: pointer;">期限</span>
           <div class="dropdown ms-2">
             <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="fa fa-filter"></i>
+              <i class="fa fa-filter"
+                 [ngStyle]="{ color: filters.end_dateFrom || filters.end_dateTo || filters.end_dateSort !== 'none' ? 'yellow' : 'white' }"></i>
             </button>
             <div class="dropdown-menu p-2" style="min-width: 200px;">
-              <input type="date" class="form-control mb-2" placeholder="期限から" [(ngModel)]="filters.endDateFrom" (change)="applyFilters()">
-              <input type="date" class="form-control mb-2" placeholder="期限まで" [(ngModel)]="filters.endDateTo" (change)="applyFilters()">
+              <input type="date" class="form-control mb-2" placeholder="期限から" [(ngModel)]="filters.end_dateFrom" (change)="applyFilters()">
+              <input type="date" class="form-control mb-2" placeholder="期限まで" [(ngModel)]="filters.end_dateTo" (change)="applyFilters()">
               <hr>
               <div class="mb-2">
                 <label class="form-label">並び替え:</label>
-                <select class="form-select" [(ngModel)]="filters.endDateSort" (change)="applyFilters()">
+                <select class="form-select" [(ngModel)]="filters.end_dateSort" (change)="applyFilters()">
                   <option value="none">指定なし</option>
                   <option value="asc">昇順</option>
                   <option value="desc">降順</option>
@@ -323,7 +328,8 @@
           <span (click)="sortTodos('assignee')" style="cursor: pointer;">担当者</span>
           <div class="dropdown ms-2">
             <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="fa fa-filter"></i>
+              <i class="fa fa-filter"
+                 [ngStyle]="{ color: filters.assignee || filters.assigneeSort !== 'none' ? 'yellow' : 'white' }"></i>
             </button>
             <div class="dropdown-menu p-2" style="min-width: 200px;">
               <div class="input-group mb-2">
@@ -350,7 +356,8 @@
           <span (click)="sortTodos('status')" style="cursor: pointer;">ステータス</span>
           <div class="dropdown ms-2">
             <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="fa fa-filter"></i>
+              <i class="fa fa-filter"
+                 [ngStyle]="{ color: (filters.status !== 'all' || filters.statusSort !== 'none') ? 'yellow' : 'white' }"></i>
             </button>
             <div class="dropdown-menu p-2" style="min-width: 200px;">
               <select class="form-select mb-2" [(ngModel)]="filters.status" (change)="applyFilters()">
@@ -378,7 +385,8 @@
           <span (click)="sortTodos('priority')" style="cursor: pointer;">優先度</span>
           <div class="dropdown ms-2">
             <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="fa fa-filter"></i>
+              <i class="fa fa-filter"
+                 [ngStyle]="{ color: (filters.priority !== 'all' || filters.prioritySort !== 'none') ? 'yellow' : 'white' }"></i>
             </button>
             <div class="dropdown-menu p-2" style="min-width: 200px;">
               <select class="form-select mb-2" [(ngModel)]="filters.priority" (change)="applyFilters()">
@@ -406,7 +414,8 @@
           <span (click)="sortCustomField(field.id)" style="cursor: pointer;">{{field.name}}</span>
           <div class="dropdown ms-2">
             <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="fa fa-filter"></i>
+              <i class="fa fa-filter"
+                 [ngStyle]="{ color: filters['custom_' + field.id] || filters['custom_' + field.id + '_sort'] !== 'none' ? 'yellow' : 'white' }"></i>
             </button>
             <div class="dropdown-menu p-2" style="min-width: 200px;">
               <div class="input-group mb-2">
@@ -433,7 +442,8 @@
           <span>完了</span>
           <div class="dropdown ms-2">
             <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="fa fa-filter"></i>
+              <i class="fa fa-filter"
+                 [ngStyle]="{ color: (filters.completed !== 'all') ? 'yellow' : 'white' }"></i>
             </button>
             <div class="dropdown-menu p-2">
               <select class="form-select" [(ngModel)]="filters.completed" (change)="applyFilters()">
@@ -450,32 +460,48 @@
       <th class="col-md-1 bg-success text-white">コメント</th>
     </tr>
   </thead>
-  <tbody>
-    <tr *ngFor="let todo of filteredTodos" [ngClass]="{'table-secondary': todo.completed}">
-      <td>{{todo.managementNumber}}</td>
-      <td>{{todo.title}}</td>
+  
+  <!-- タスクが追加されていく場所 -->
+  <tbody cdkDropList
+         (cdkDropListDropped)="drop($event)"
+         [cdkDropListData]="filteredTodos"
+         [cdkDropListDisabled]="!isDragDropEnabled()">
+    <tr *ngFor="let todo of filteredTodos"
+        cdkDrag
+        [cdkDragDisabled]="!isDragDropEnabled()"
+        [ngClass]="{'table-secondary': todo.completed}">
+      <td>{{todo.id}}</td>
+      <td>{{todo.text}}</td>
       <td>{{todo.category}}</td>
-      <td>{{todo.startDate}}</td>
-      <td>{{todo.endDate}}</td>
+      <td>{{todo.start_date}}</td>
+      <td>{{todo.end_date}}</td>
       <td>{{todo.assignee}}</td>
-      <td>{{todo.status}}</td>
-      <td>{{todo.priority}}</td>
-      <!-- カスタムフィールドの値を表示 -->
+      <td [ngClass]="{
+        'status-in-progress': todo.status === '進行中',
+        'status-review': todo.status === 'レビュー中',
+        'status-done': todo.status === '完了'
+      }" class="text-center align-middle">
+        {{todo.status}}
+      </td>
+      <td [ngClass]="{
+        'priority-high': todo.priority === '高い',
+        'priority-medium': todo.priority === '普通',
+        'priority-low': todo.priority === '低い'
+      }" class="text-center align-middle">
+        {{todo.priority}}
+      </td>
       <td *ngFor="let field of customFields">
-          {{(todo.customFields | find:field.id)?.value || ''}}
+        {{(todo.customFields! | find:field.id)?.value || ''}}
       </td>
       <td class="text-center">
-        <input type="checkbox" 
-               class="form-check-input" 
-               [checked]="todo.completed"
-               (change)="changeStatus(todo)">
+        <input type="checkbox" class="form-check-input" [checked]="todo.completed" (change)="changeStatus(todo)">
       </td>
       <td><button type="button" class="btn btn-outline-primary btn-sm" (click)="editTodo(todo)">編集</button></td>
-      <td><button type="button" class="btn btn-outline-danger btn-sm" (click)="deleteTodo(todo.managementNumber)">削除</button></td>
+      <td><button type="button" class="btn btn-outline-danger btn-sm" (click)="deleteTodo(todo)">削除</button></td>
       <td>
         <button type="button" class="btn btn-outline-info btn-sm" (click)="openCommentModal(todo)">
           <i class="fa fa-comment"></i>
-          <span class="badge bg-secondary ms-1" *ngIf="todo.comments?.length">{{ todo.comments.length }}</span>
+          <span class="badge bg-secondary ms-1" *ngIf="todo.comments && todo.comments.length">{{ todo.comments.length }}</span>
         </button>
       </td>
     </tr>
@@ -574,63 +600,4 @@
 <!-- モーダル背景 -->
 <div class="modal-backdrop fade show" *ngIf="showCommentModal"></div>
 
-<!-- スタイルを更新 -->
-<style>
-.modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1040;
-}
-
-.modal {
-  z-index: 1050;
-}
-
-.comment-item {
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
-  padding: 10px;
-  margin-bottom: 10px;
-  background-color: #ffffff;
-}
-
-.reply-item {
-  border-left: 3px solid #dee2e6;
-  padding-left: 10px;
-  background-color: #f8f9fa;
-  border-radius: 0 4px 4px 0;
-}
-
-.comment-body, .reply-body {
-  background-color: #f8f9fa;
-  border-radius: 4px;
-  margin-top: 5px;
-  padding: 8px;
-}
-
-.reply-form {
-  margin-top: 8px;
-}
-
-.existing-comments {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.modal-footer {
-  position: static;
-  background-color: #f8f9fa;
-  padding: 1rem;
-  border-top: 1px solid #dee2e6;
-}
-
-.btn {
-  position: static;
-  display: inline-block;
-}
-</style>
 

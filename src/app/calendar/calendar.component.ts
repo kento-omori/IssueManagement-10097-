@@ -1,17 +1,22 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FullCalendarModule } from '@fullcalendar/angular';
 import { CalendarOptions, EventClickArg } from '@fullcalendar/core';
+import { DateClickArg } from '@fullcalendar/interaction';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { SharedTodoGanttService, GanttTask } from '../services/shared-todo-gantt.service';
+import { TodoFirestoreService } from '../services/todo-firestore.service';
+import { CalendarFirestoreService } from '../services/calendar-firestore.service';
+import { Todo } from '../todo/todo.interface';
+import { Subscription, forkJoin } from 'rxjs';
+import { take } from 'rxjs/operators';
 
-export interface Event {
-  id?: string;
-  title: string;
-  start: string;
-  end: string;
+export interface CalendarEvent {      // カレンダー上で作成するもの限定の型
+  id?: string;    //データベースのid
+  title: string;  //タスクのタイトル
+  start: string;  //タスクの開始日
+  end: string;   //タスクの終了日
 };
 
 @Component({
@@ -21,29 +26,116 @@ export interface Event {
   templateUrl: './calendar.component.html',
   styleUrls: ['./calendar.component.css']
 })
-export class CalendarComponent implements OnInit {
-  events: Event[] = [];
+export class CalendarComponent implements OnInit, OnDestroy {
+  private subscriptions: Subscription[] = [];
   showEventForm = false;
   showEditForm = false;
   selectedDate: string = '';
-  newEvent: Event = {
+  todoEvents: Todo[] = [];          // TODOリストから取得したデータ
+  calendarEvents: CalendarEvent[] = [];  // カレンダー上で作成されるデータ
+  isLoading = true;  // 追加
+  newEvent: CalendarEvent = {
     title: '',
     start: '',
     end: ''
   };
-  editingEvent: Event | null = null;
+  editingCalendarEvent: CalendarEvent | null = null;
+  editingTodoEvent: Todo | null = null;
 
-  constructor(private sharedTodoGanttService: SharedTodoGanttService) {}
+  // カレンダーの表示設定
+  calendarOptions: CalendarOptions = {
+    initialView: 'dayGridMonth',
+    plugins: [dayGridPlugin, interactionPlugin],
+    dateClick: this.handleDateClick.bind(this),
+    eventClick: this.handleEventClick.bind(this),
+    eventMouseEnter: (arg) => {
+      const tooltip = document.createElement('div');
+      tooltip.className = 'event-tooltip';
+      tooltip.innerHTML = `
+        <button onclick="document.dispatchEvent(new CustomEvent('editEvent', {detail: '${arg.event.id}'}))">編集</button>
+        <button onclick="document.dispatchEvent(new CustomEvent('deleteEvent', {detail: '${arg.event.id}'}))">削除</button>
+      `;
+      document.body.appendChild(tooltip);
+      const rect = arg.el.getBoundingClientRect();
+      tooltip.style.position = 'absolute';
+      tooltip.style.top = `${rect.bottom}px`;
+      tooltip.style.left = `${rect.left}px`;
+    },
+    eventMouseLeave: () => {
+      const tooltip = document.querySelector('.event-tooltip');
+      if (tooltip) {
+        tooltip.remove();
+      }
+    },
+    events: []  // 初期値は空配列
+  };
+
+  constructor(
+    private todoFirestoreService: TodoFirestoreService,
+    private calendarFirestoreService: CalendarFirestoreService,
+    private cdr: ChangeDetectorRef
+  ) {
+    console.log('Calendar constructor');
+  }
 
   ngOnInit() {
-    this.sharedTodoGanttService.tasks$.subscribe((tasks: GanttTask[]) => {
-      this.events = tasks.map(task => ({
-        id: Math.random().toString(36).substr(2, 9),
-        title: task.text,
-        start: task.start_date,
-        end: this.addOneDay(task.end_date),
-      }));
+    console.log('Calendar initialization started');
+    this.loadCalendarData();
+  }
+
+  ngOnDestroy() {
+    console.log('Calendar cleanup');
+    this.subscriptions.forEach(sub => sub.unsubscribe());
+  }
+
+  private loadCalendarData() {
+    // 一度だけデータを取得
+    const todoSub = this.todoFirestoreService.getTodos().pipe(take(1)).subscribe({
+      next: (tasks: Todo[]) => {
+        console.log('Todos loaded:', tasks.length);
+        this.todoEvents = tasks.map(task => ({
+          ...task,
+          end_date: this.addOneDay(task.end_date)
+        }));
+        this.updateCalendarEvents();
+      },
+      error: (error) => console.error('Error loading todos:', error)
     });
+
+    const calendarSub = this.calendarFirestoreService.getCalendarEvents().pipe(take(1)).subscribe({
+      next: (events) => {
+        console.log('Calendar events loaded:', events.length);
+        this.calendarEvents = events.map(event => ({
+          ...event,
+          end: this.addOneDay(event.end)
+        }));
+        this.updateCalendarEvents();
+      },
+      error: (error) => console.error('Error loading calendar events:', error)
+    });
+
+    this.subscriptions.push(todoSub, calendarSub);
+  }
+
+  private updateCalendarEvents() {
+    const events = [
+      ...this.todoEvents.map(todo => ({
+        id: todo.dbid,
+        title: todo.text,
+        start: todo.start_date,
+        end: todo.end_date
+      })),
+      ...this.calendarEvents
+    ];
+
+    this.calendarOptions = {
+      ...this.calendarOptions,
+      events
+    };
+
+    this.isLoading = false;
+    this.cdr.detectChanges();
+    console.log('Calendar events updated:', events.length);
   }
 
   // end_dateに1日加算する関数
@@ -56,36 +148,9 @@ export class CalendarComponent implements OnInit {
     const dd = ('0' + date.getDate()).slice(-2);
     return `${yyyy}-${mm}-${dd}`;
   }
-  // カレンダーのオプション呼び出し
-  calendarOptions: CalendarOptions = {
-    initialView: 'dayGridMonth',
-    plugins: [dayGridPlugin, interactionPlugin],
-    dateClick: (arg) => this.handleDateClick(arg),
-    eventClick: (arg) => this.handleEventClick(arg),
-    eventMouseEnter: (arg) => {
-      const tooltip = document.createElement('div');
-      tooltip.className = 'event-tooltip';
-      tooltip.innerHTML = `
-        <button onclick="document.dispatchEvent(new CustomEvent('editEvent', {detail: '${arg.event.id}'}))">編集</button>
-        <button onclick="document.dispatchEvent(new CustomEvent('deleteEvent', {detail: '${arg.event.id}'}))">削除</button>
-      `;
-      document.body.appendChild(tooltip);
-      
-      const rect = arg.el.getBoundingClientRect();
-      tooltip.style.position = 'absolute';
-      tooltip.style.top = `${rect.bottom}px`;
-      tooltip.style.left = `${rect.left}px`;
-    },
-    eventMouseLeave: () => {
-      const tooltip = document.querySelector('.event-tooltip');
-      if (tooltip) {
-        tooltip.remove();
-      }
-    },
-    events: this.events
-  };
 
-  handleDateClick(arg: any) {
+  // 日付クリック時のフォーム表示
+  handleDateClick(arg: DateClickArg) {
     this.selectedDate = arg.dateStr;
     this.newEvent = {
       title: '',
@@ -96,57 +161,102 @@ export class CalendarComponent implements OnInit {
     this.showEditForm = false;
   }
 
+  // 入力されているイベントクリック時のフォーム表示
   handleEventClick(arg: EventClickArg) {
-    const event = this.events.find(e => e.id === arg.event.id);
-    if (event) {
-      this.editingEvent = { ...event };
+    // まずTodoリストから検索
+    const todoEvent = this.todoEvents.find(e => e.dbid === arg.event.id);
+    if (todoEvent) {
+      this.editingTodoEvent = { ...todoEvent };
+      this.editingCalendarEvent = null;
+      this.showEditForm = true;
+      this.showEventForm = false;
+      return;
+    }
+    // Todoになければカレンダーイベントから検索
+    const calendarEvent = this.calendarEvents.find(e => e.id === arg.event.id);
+    if (calendarEvent) {
+      this.editingCalendarEvent = { ...calendarEvent };
+      this.editingTodoEvent = null;
       this.showEditForm = true;
       this.showEventForm = false;
     }
   }
 
-  addEvent() {
+  // 新規登録　→　firestore（user/{user_id}/calendar/）に登録
+  async addEvent() {
     if (this.newEvent.title && this.newEvent.start && this.newEvent.end) {
-      const newEventWithId = {
-        ...this.newEvent,
-        id: Math.random().toString(36).substr(2, 9),
-        end: this.addOneDay(this.newEvent.end)
-      };
-      this.events = [...this.events, newEventWithId];
-      this.showEventForm = false;
-      this.newEvent = {
-        title: '',
-        start: '',
-        end: ''
-      };
+      try {
+        await this.calendarFirestoreService.addCalendarEvent(this.newEvent);
+        this.showEventForm = false;
+        this.newEvent = {
+          title: '',
+          start: '',
+          end: ''
+        };
+      } catch (error) {
+        console.error('イベント追加エラー:', error);
+      }
     }
   }
 
-  updateEvent() {
-    if (this.editingEvent) {
-      const updatedEvent: Event = {
-        id: this.editingEvent.id,
-        title: this.editingEvent.title,
-        start: this.editingEvent.start,
-        end: this.addOneDay(this.editingEvent.end)
-      };
-      this.events = this.events.map(event => 
-        event.id === updatedEvent.id ? updatedEvent : event
-      );
-      this.showEditForm = false;
-      this.editingEvent = null;
+  // 更新　→　firestoreに登録
+  async updateEvent() {
+    if (this.editingCalendarEvent?.id) {
+      try {
+        const { id, ...updateData } = this.editingCalendarEvent;
+        await this.calendarFirestoreService.updateCalendarEvent(id, updateData);
+        this.showEditForm = false;
+        this.editingCalendarEvent = null;
+      } catch (error) {
+        console.error('イベント更新エラー:', error);
+      }
+    } else if (this.editingTodoEvent?.dbid) {
+      try {
+        await this.todoFirestoreService.updateTodo(this.editingTodoEvent.dbid, this.editingTodoEvent);
+        this.showEditForm = false;
+        this.editingTodoEvent = null;
+      } catch (error) {
+        console.error('Todo更新エラー:', error);
+      }
     }
   }
 
-  deleteEvent(eventId: string) {
-    this.events = this.events.filter(event => event.id !== eventId);
+  // 削除　→　firestoreから削除
+  async deleteEvent(eventId: string) {
+    try {
+      // まずTodoリストから検索
+      const todoEvent = this.todoEvents.find(e => e.dbid === eventId);
+      if (todoEvent) {
+        // Todoタスクの場合は警告を表示
+        if (!confirm('TODOリストに登録されているタスクです。本当に消しますか？')) {
+          return; // キャンセルされた場合は処理を中止
+        }
+        await this.todoFirestoreService.deleteTodo(eventId);
+        return;
+      }
+      // カレンダーイベントの場合は直接削除
+      await this.calendarFirestoreService.deleteCalendarEvent(eventId);
+    } catch (error) {
+      console.error('イベント削除エラー:', error);
+    }
   }
 
   ngAfterViewInit() {
     document.addEventListener('editEvent', ((e: CustomEvent) => {
-      const event = this.events.find(ev => ev.id === e.detail);
-      if (event) {
-        this.editingEvent = { ...event };
+      // まずTodoリストから検索
+      const todoEvent = this.todoEvents.find(ev => ev.dbid === e.detail);
+      if (todoEvent) {
+        this.editingTodoEvent = { ...todoEvent };
+        this.editingCalendarEvent = null;
+        this.showEditForm = true;
+        this.showEventForm = false;
+        return;
+      }
+      // Todoになければカレンダーイベントから検索
+      const calendarEvent = this.calendarEvents.find(ev => ev.id === e.detail);
+      if (calendarEvent) {
+        this.editingCalendarEvent = { ...calendarEvent };
+        this.editingTodoEvent = null;
         this.showEditForm = true;
         this.showEventForm = false;
       }

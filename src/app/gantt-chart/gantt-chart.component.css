@@ -50,3 +50,11 @@
   :host ::ng-deep .gantt_task_line.priority-low {
   background-color: #00C851 !important; 
   }
+
+  .form-group {
+    min-height: 85px;
+  }
+  .validation-message {
+    height: 20px;
+    margin-top: 4px;
+  }

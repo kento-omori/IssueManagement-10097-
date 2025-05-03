@@ -241,11 +241,9 @@ export class TasklistComponent implements OnInit {
   onSubmit(): void {
     if (this.taskForm.valid) {
       const formValue = this.taskForm.getRawValue();
-      // console.log(formValue),console.log(JSON.stringify(formValue));
       // タスクの編集
       if (this.editingTask) {
         const index = this.taskLists.findIndex(task => task.id === this.editingTask!.id);
-        // console.log(index);
         if (index !== -1) {
           this.taskLists[index] = { 
             ...formValue,
@@ -274,13 +272,6 @@ export class TasklistComponent implements OnInit {
 
   // タスクの削除
   deleteTask(taskList: TaskLists): void {
-    // const index = this.taskLists.findIndex(task => task.id === taskList.id);
-    // if (index !== -1) {
-    //   this.taskLists.splice(index, 1);
-    //   this.tasklistFirestoreService.deleteTask(taskList.id!);
-    //   this.applyFilters();
-    // }
-    console.log('削除するタスク:', taskList);
     if (taskList.id) {
       this.tasklistFirestoreService.deleteTask(taskList.id);
     } else {
@@ -299,8 +290,6 @@ export class TasklistComponent implements OnInit {
       memo: taskList.memo,
       completed: taskList.completed,
     });
-    console.log(taskList.id);
-    console.log(this.editingTask);
   }
 
   // タスクの並び替え(drag&drop)

@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, authState, sendPasswordResetEmail, sendEmailVerification,updateProfile, User } from '@angular/fire/auth';
 import { Router } from '@angular/router';
 import { UserService } from './user.service';
+import { NgZone } from '@angular/core';
 
 @Injectable({
   providedIn: 'root'
@@ -15,7 +16,8 @@ export class AuthService {
   constructor(
     private auth: Auth,
     private router: Router,
-    private userService: UserService
+    private userService: UserService,
+    private ngZone: NgZone
   ) {
     this.authState$ = authState(this.auth);
   }
@@ -34,11 +36,32 @@ export class AuthService {
   async login(email: string, password: string): Promise<void> {
     try {
       const userCredential = await signInWithEmailAndPassword(this.auth, email, password);
+      console.log('Firebase login successful');
+      
       // ユーザープロフィールを取得
       const userProfile = await this.userService.getUserProfile(userCredential.user.uid);
-      if (userProfile) {
-        await this.router.navigate(['/home']);
-      }
+      console.log('User profile loaded');
+
+      // NgZone内でナビゲーションを実行
+      return new Promise<void>((resolve, reject) => {
+        this.ngZone.run(async () => {
+          try {
+            console.log('Attempting navigation to /home');
+            const result = await this.router.navigate(['/home']);
+            console.log('Navigation result:', result);
+            if (result) {
+              console.log('Navigation successful');
+              resolve();
+            } else {
+              console.error('Navigation failed');
+              reject(new Error('Navigation failed'));
+            }
+          } catch (error) {
+            console.error('Navigation error:', error);
+            reject(error);
+          }
+        });
+      });
     } catch (error) {
       console.error('ログインエラー:', error);
       throw error;
