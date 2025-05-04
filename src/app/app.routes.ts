@@ -8,8 +8,9 @@ import { PrivateComponent } from './private/private.component';
 import { HomeComponent } from './home/home.component';
 import { authGuard } from './guards/auth.guard';
 import { GanttChartComponent } from './gantt-chart/gantt-chart.component';
-import { IShareComponent } from './i-share/i-share.component';
 import { VerifyEmailComponent } from './components/verify-email/verify-email.component';
+import { ParentIShareComponent } from './parent-i-share/parent-i-share.component';
+import { IShareComponent } from './i-share/i-share.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
@@ -21,6 +22,7 @@ export const routes: Routes = [
   { path: 'todo', component: TodoComponent, canActivate: [authGuard] },
   { path: 'tasklist', component: TasklistComponent, canActivate: [authGuard] },
   { path: 'gantt-chart', component: GanttChartComponent, canActivate: [authGuard] },
-  { path: 'i-share', component: IShareComponent, canActivate: [authGuard] },
+  { path: 'parent-i-share', component: ParentIShareComponent, canActivate: [authGuard] },
   { path: 'verify-email', component: VerifyEmailComponent },
+  { path: 'i-share/:dbid', component: IShareComponent }
 ];

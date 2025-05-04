@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormControl, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Todo, CustomField, Comment, Reply, Filters } from './todo.interface';
-import { FindPipe, OrderByOrderPipe } from './find.pipe';
+import { FindPipe } from './find.pipe';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
 import { v4 as uuidv4 } from 'uuid';
@@ -14,7 +14,7 @@ import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 @Component({
   selector: 'app-todo',
   standalone: true,
-  imports: [ReactiveFormsModule, CommonModule, FindPipe, FormsModule, DragDropModule,OrderByOrderPipe],
+  imports: [ReactiveFormsModule, CommonModule, FindPipe, FormsModule, DragDropModule],
   templateUrl: './todo.component.html',
   styleUrl: './todo.component.css'
 })

@@ -79,20 +79,10 @@ export class CalendarComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    console.log('Calendar initialization started');
-    this.loadCalendarData();
-  }
-
-  ngOnDestroy() {
-    console.log('Calendar cleanup');
-    this.subscriptions.forEach(sub => sub.unsubscribe());
-  }
-
-  private loadCalendarData() {
-    // 一度だけデータを取得
-    const todoSub = this.todoFirestoreService.getTodos().pipe(take(1)).subscribe({
+    this.isLoading = true;
+    // リアルタイム購読
+    const todoSub = this.todoFirestoreService.getTodos().subscribe({
       next: (tasks: Todo[]) => {
-        console.log('Todos loaded:', tasks.length);
         this.todoEvents = tasks.map(task => ({
           ...task,
           end_date: this.addOneDay(task.end_date)
@@ -102,9 +92,8 @@ export class CalendarComponent implements OnInit, OnDestroy {
       error: (error) => console.error('Error loading todos:', error)
     });
 
-    const calendarSub = this.calendarFirestoreService.getCalendarEvents().pipe(take(1)).subscribe({
+    const calendarSub = this.calendarFirestoreService.getCalendarEvents().subscribe({
       next: (events) => {
-        console.log('Calendar events loaded:', events.length);
         this.calendarEvents = events.map(event => ({
           ...event,
           end: this.addOneDay(event.end)
@@ -117,15 +106,24 @@ export class CalendarComponent implements OnInit, OnDestroy {
     this.subscriptions.push(todoSub, calendarSub);
   }
 
+  ngOnDestroy() {
+    console.log('Calendar cleanup');
+    this.subscriptions.forEach(sub => sub.unsubscribe());
+  }
+
   private updateCalendarEvents() {
     const events = [
       ...this.todoEvents.map(todo => ({
         id: todo.dbid,
         title: todo.text,
         start: todo.start_date,
-        end: todo.end_date
+        end: todo.end_date,
+        color: '#007bff' // 青
       })),
-      ...this.calendarEvents
+      ...this.calendarEvents.map(event => ({
+        ...event,
+        color: '#28a745' // 緑
+      }))
     ];
 
     this.calendarOptions = {

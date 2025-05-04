@@ -1,7 +1,14 @@
 <br>
 <br>
 
-<full-calendar [options]="calendarOptions"></full-calendar>
+<!-- データが揃うまでカレンダーを描画しない -->
+<div *ngIf="!isLoading">
+  <full-calendar [options]="calendarOptions"></full-calendar>
+</div>
+<div *ngIf="isLoading" class="text-center py-5">
+  <div class="spinner-border text-primary" role="status"></div>
+  <div>カレンダーを読み込み中...</div>
+</div>
 
 <!-- 新規イベント追加フォーム -->
 <div *ngIf="showEventForm" class="event-form">

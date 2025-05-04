@@ -1,33 +1,34 @@
 <div class="container-fluid">
-    <div class="row align-items-center">
-        <div class="col-2">
-            <h1>情報共有スペース</h1>
-        </div>
-        <div class="col-1">
-            <h4 class="text-brack">
-            <a routerLink="/private" [style.curosor]="'pointer'" routerLinkActive="active" 
-            ariaCurrentWhenActive="page">PRIVAT</a>
-            </h4>
-        </div>
+  <div class="row align-items-center">
+    <div class="col-4">
+      <h3>タイトル: {{ space?.title }}</h3>
+      <button (click)="closeSpace()">このスペースを閉じる</button>
     </div>
+  </div>
 </div>
 
 <!-- コメントリスト表示 -->
-<div class="container-fluid" style="padding-top: 10px; padding-bottom: 10em; overflow-y: auto;">
+<div class="container-fluid" style="padding-top: 10px; padding-bottom: 15em; overflow-y: auto;">
   <div class="row" *ngFor="let comment of comments; let i = index">
     <div class="col-12">
       <div class="card my-2">
-        <div class="card-header">
+        <div class="card-header d-flex align-items-center">
           <span class="badge bg-primary me-2">{{ i + 1 }}</span>
           <strong>{{ comment.user }}</strong>
           <span class="text-muted ms-2">{{ comment.date }}</span>
+          <div class="ms-auto">
+            <button class="btn btn-sm btn-warning me-2" (click)="onEditComment(comment)">編集</button>
+            <button class="btn btn-sm btn-danger" (click)="onDeleteComment(comment)">削除</button>
+          </div>
         </div>
         <div class="card-body">
           <div style="white-space: pre-wrap;">{{ comment.text }}</div>
           <div *ngIf="comment.fileName">
             <i class="fa fa-paperclip"></i>
             <span *ngIf="comment.fileUrl; else noLink">
-              <a [href]="comment.fileUrl" target="_blank">{{ comment.fileName }}</a>
+              <a *ngIf="comment.fileUrl" [href]="comment.fileUrl" target="_blank">
+                {{ comment.fileName }} をダウンロード
+              </a>
             </span>
             <ng-template #noLink>
               {{ comment.fileName }}
