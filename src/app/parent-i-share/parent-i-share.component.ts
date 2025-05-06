@@ -18,15 +18,15 @@ export interface Comment { //commentsの型
   user: string;
   date: string;
   text: string;
-  fileName?: string;
+  fileName?: string | null;
   fileData?: File | null;
-  fileUrl?: string;
+  fileUrl?: string | null;
 }
 
 @Component({
   selector: 'app-parent-i-share',
   standalone: true,
-  imports: [ CommonModule, RouterOutlet, RouterLink,  FormsModule],
+  imports: [ CommonModule, RouterLink,  FormsModule],
   templateUrl: './parent-i-share.component.html',
   styleUrl: './parent-i-share.component.css'
 })

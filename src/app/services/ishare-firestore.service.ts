@@ -14,6 +14,7 @@ import {
 import { Observable } from 'rxjs';
 import { Auth } from '@angular/fire/auth';
 import { SpaceData } from '../parent-i-share/parent-i-share.component';
+import { Comment } from '../parent-i-share/parent-i-share.component';
 import { Storage, ref, uploadBytes, getDownloadURL, getMetadata, FullMetadata, deleteObject } from '@angular/fire/storage';
 import { v4 as uuidv4 } from 'uuid';
 @Injectable({
@@ -87,10 +88,10 @@ export class IShareFirestoreService {
   }
 
   // コメントの取得
-  getComments(spaceId: string) {
+  getComments(spaceId: string):Observable<Comment[]> {
     const commentsRef = collection(this.firestore, this.getCommentsCollectionPath(spaceId));
-    const q = query(commentsRef, orderBy('createdAt', 'desc'));
-    return collectionData(q, { idField: 'id' });
+    const q = query(commentsRef, orderBy('date', 'desc'));
+    return collectionData(q, { idField: 'id' }) as Observable<Comment[]>;
   }
 
   // コメントの削除
@@ -126,16 +127,13 @@ export class FileStorageService {
   // ファイルのアップロード
   async uploadFile(file: File, fileName: string): Promise<string> {
     const path = this.getfileStoragePath(fileName);
-    console.log(path);
     const storageRef = ref(this.storage, path);
     let contentType = file.type;
     if (contentType === 'text/plain') {
       contentType += ';charset=utf-8';
     };
     const metadata = { contentType: contentType };
-    console.log(metadata);
     await uploadBytes(storageRef, file, metadata);
-    console.log(storageRef);
     return await getDownloadURL(storageRef);
   }
 

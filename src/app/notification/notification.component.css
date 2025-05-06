@@ -1,0 +1,18 @@
+.card-text {
+  margin-bottom: 2px;      /* 下の余白を小さく */
+  line-height: 1.2;        /* 行の高さを詰める */
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.warning-border-subtle {
+  border: 2px solid #ffe066; /* 明るい黄色 */
+  /* 必要に応じて border-radius も調整 */
+}
+
+.shadow-hover {
+    transition: box-shadow 0.2s;
+  }
+  .shadow-hover:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+  }

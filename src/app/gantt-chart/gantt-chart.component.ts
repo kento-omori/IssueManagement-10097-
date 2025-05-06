@@ -4,21 +4,23 @@ import { CommonModule } from '@angular/common';
 import { gantt } from 'dhtmlx-gantt';
 import { IdManagerService } from '../services/id-manager.service';
 import { TodoFirestoreService } from '../services/todo-firestore.service';
-import { Todo } from '../todo/todo.interface';
+import { Todo, GanttLink } from '../todo/todo.interface';
 import { firstValueFrom, of } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-gantt-chart',
   templateUrl: './gantt-chart.component.html',
   styleUrls: ['./gantt-chart.component.css'],
   standalone: true,
-  imports:[ReactiveFormsModule, CommonModule]
+  imports:[ReactiveFormsModule, CommonModule, RouterModule]
 })
 export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
 
   @ViewChild('ganttChart', { static: true }) ganttChart!: ElementRef;
   taskForm!: FormGroup;
+  tasks: Todo[] | null = null;
 
   constructor(
     private idManagerService: IdManagerService,
@@ -181,12 +183,9 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
 
     // タスクの更新イベントを監視
     gantt.attachEvent("onAfterTaskUpdate", async (id: string, item: any) => {
-      try {
-        console.log('Task updated:', item);
-        
+      try {              
         // dbidを使用してFirestoreのドキュメントを更新
         const taskId = item.dbid || id;
-        
         // Firestoreに保存するデータを準備
         const updateData: any = {
           status: item.status,
@@ -195,31 +194,30 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
 
         // 日付が変更された場合は更新データに含める
         if (item.start_date) {
-          updateData.start_date = item.start_date.toISOString().split('T')[0];
-        };
+          if (typeof item.start_date === 'string' && item.start_date.match(/^\\d{4}-\\d{2}-\\d{2}$/)) {
+            updateData.start_date = item.start_date;
+          } else if (item.start_date instanceof Date) {
+            const yyyy = item.start_date.getFullYear();
+            const mm = ('0' + (item.start_date.getMonth() + 1)).slice(-2);
+            const dd = ('0' + item.start_date.getDate()).slice(-2);
+            updateData.start_date = `${yyyy}-${mm}-${dd}`;
+          }
+        }
         if (item.end_date) {
-          // end_dateは1日前の日付を保存
-          const endDate = new Date(item.end_date);
-          endDate.setDate(endDate.getDate() - 1);
-          updateData.end_date = endDate.toISOString().split('T')[0];
-        };
-
-        console.log('Updating task:', taskId, updateData);
-        
+          updateData.end_date = typeof item.end_date === 'string'
+            ? item.end_date
+            : item.end_date.toISOString().split('T')[0];
+        }
         // Firestoreのドキュメントを更新
         await this.todoFirestoreService.updateTodo(taskId, updateData);
-        console.log('Firestore updated successfully');
       } catch (error) {
         console.error('Error updating task in Firestore:', error);
-        // エラーが発生した場合は元の値に戻す
-        gantt.refreshData();
+        gantt.refreshData(); // エラーが発生した場合は元の値に戻す
       }
     });
 
     // 進捗率が変更される前のイベント
-    gantt.attachEvent("onBeforeTaskUpdate", (id: string, item: any) => {
-      console.log('Before task update:', item);
-      
+    gantt.attachEvent("onBeforeTaskUpdate", (id: string, item: any) => {    
       // 進捗率の正規化
       if (item.progress > 1) {
         item.progress = item.progress / 100;
@@ -307,6 +305,7 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
 
     // firestoreからタスクを取得してガントチャートを更新
     this.todoFirestoreService.getTodos().subscribe((tasks: Todo[]) => {
+      this.tasks = tasks;
       if (!tasks || tasks.length === 0) {
         gantt.clearAll();
         return;
@@ -339,10 +338,29 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
         const dd = ('0' + date.getDate()).slice(-2);
         return { ...task, end_date: `${yyyy}-${mm}-${dd}` };
       });
+
+      // ここで全タスクのlinksを1つの配列にまとめる
+      const allLinks = tasks
+        .map(task => Array.isArray(task.links) ? task.links : [])
+        .flat()
+        .filter(link =>
+          link &&
+          link.id != null &&
+          link.source != null &&
+          link.target != null &&
+          link.type != null
+        )
+        .map(link => ({
+          id: String(link.id),
+          source: String(link.source),
+          target: String(link.target),
+          type: String(link.type)
+        }));
+
       // ガントチャートの初期化・描写
       gantt.init(this.ganttChart.nativeElement);
       gantt.clearAll();
-      gantt.parse({ data: fixedTasks });
+      gantt.parse({ data: fixedTasks, links: allLinks });
       gantt.render();
     });
        
@@ -358,7 +376,7 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
       return true;
     });
 
-    gantt.attachEvent("onTaskClick", (id: string, e: any) => {
+    gantt.attachEvent("onTaskDblClick", (id: string, e: any) => {
       // 既存のポップアップがあれば閉じる
       if (isPopupVisible) {
         gantt.message.hide("");
@@ -402,12 +420,46 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
       return false; // デフォルトの編集フォームを表示しない
     });
 
-    gantt.attachEvent("onTaskDblClick", (id: string, e: any) => {
+    gantt.attachEvent("onTaskClick", (id: string, e: any) => {
       return false;
     });
     
     window.addEventListener('resize', this.resizeHandler);
     setTimeout(() => gantt.setSizes(), 100);
+
+    // リンク追加時
+    gantt.attachEvent("onAfterLinkAdd", async (id: string, link: any) => {
+      // tasks配列をクラス変数として保持している前提
+      const sourceTask = this.tasks?.find(task => String(task.id) === String(link.source));
+      if (!sourceTask) {
+        console.error('sourceTask not found for link:', link);
+        return true;
+      }
+      await this.todoFirestoreService.addLinkToTask(sourceTask.dbid!, {
+        id: link.id,
+        source: link.source,
+        target: link.target,
+        type: link.type
+      });
+      return true;
+    });
+
+    // リンク削除時
+    gantt.attachEvent("onAfterLinkDelete", async (id: string, link: any) => {
+      // tasks配列からdbidを取得
+      const sourceTask = this.tasks?.find(task => String(task.id) === String(link.source));
+      console.log(link.source);
+      console.log(sourceTask);
+      if (!sourceTask) {
+        console.error('sourceTask not found for link:', link);
+        return true;
+      }
+      await this.todoFirestoreService.deleteLinkFromTask(sourceTask.dbid!, id);
+      console.log(sourceTask.dbid,id);
+      console.log('onAfterLinkDelete', link);
+      return true;
+    });
+
   }
 
   async addTask() {
@@ -421,6 +473,7 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
 
         const formValue = { ...this.taskForm.getRawValue() };
         formValue.progress = formValue.progress / 100; // 進捗率を0-1の範囲に変換
+        formValue.links = [];
         const id = formValue.id;
         // 既存タスクかどうかを判定
         const existing = tasks.find((t: any) => Number(t.id) === Number(id));

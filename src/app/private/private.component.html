@@ -1,19 +1,24 @@
 <br>
 <div class="container-fluid">
-    <h3 class="bg-primary col-md-3">
-        <a class="text-white" routerLink="/tasklist" [style.curosor]="'pointer'" routerLinkActive="active" 
-        ariaCurrentWhenActive="page">TASK LIST</a>
-    </h3>
-    <h3 class="bg-primary col-md-3">
-        <a class="text-white" routerLink="/todo" [style.curosor]="'pointer'" routerLinkActive="active" 
-        ariaCurrentWhenActive="page">TO DO LIST</a>
-    </h3>
-    <h3 class="bg-primary col-md-3">
-        <a class="text-white" routerLink="/gantt-chart" [style.curosor]="'pointer'" routerLinkActive="active" 
-        ariaCurrentWhenActive="page">ガントチャート</a>
-    </h3>
-    <h3 class="bg-primary col-md-3">
-        <a class="text-white" routerLink="/parent-i-share" [style.curosor]="'pointer'" routerLinkActive="active" 
+    <div class="row row-cols-12">
+        <div class="card shadow-hover border-5 border-primary col-md-3">
+            <a class="text-primary text-decoration-none fs-3 text-center" routerLink="/tasklist" [style.curosor]="'pointer'" routerLinkActive="active" 
+            ariaCurrentWhenActive="page">タスク管理リスト</a>
+        </div>
+        <div class="card h-100 shadow-hover border-5 border-primary col-md-3">
+            <a class="text-primary text-decoration-none fs-3 text-center" routerLink="/todo" [style.curosor]="'pointer'" routerLinkActive="active" 
+            ariaCurrentWhenActive="page">TO DO リスト</a>
+        </div>
+        <div class="card h-100 shadow-hover border-5 border-primary col-md-3">
+            <a class="text-primary text-decoration-none fs-3 text-center" routerLink="/gantt-chart" [style.curosor]="'pointer'" routerLinkActive="active" 
+            ariaCurrentWhenActive="page">ガントチャート</a>
+        </div>
+        <div class="card h-100 shadow-hover border-5 border-primary col-md-3">
+            <a class="text-primary text-decoration-none fs-3 text-center" routerLink="/parent-i-share" [style.curosor]="'pointer'" routerLinkActive="active" 
         ariaCurrentWhenActive="page">情報共有スペース</a>
-    </h3>
+        </div>
+    </div>
 </div>
+<br>
+<app-dashboad></app-dashboad>
+<app-notification></app-notification>

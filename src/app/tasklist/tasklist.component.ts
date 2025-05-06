@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { CdkDragDrop, moveItemInArray, DragDropModule, CdkDrag, CdkDropList } from '@angular/cdk/drag-drop';
 import { FormsModule } from '@angular/forms';
 import { TasklistFirestoreService } from '../services/tasklist-firestore.service';
+import { RouterModule } from '@angular/router';
 
 export interface TaskLists {
   id?: string;
@@ -38,7 +39,8 @@ interface Filters {
     DragDropModule, 
     FormsModule,
     CdkDrag,
-    CdkDropList
+    CdkDropList,
+    RouterModule
   ],
   templateUrl: './tasklist.component.html',
   styleUrl: './tasklist.component.css'
@@ -164,8 +166,7 @@ export class TasklistComponent implements OnInit {
       );
     }
 
-    // 並び替えの適用
-    // タイトルの並び替え
+    // タイトルでのフィルタリング
     if (this.filters.titleSort !== 'none') {
       filtered.sort((a, b) => {
         const comparison = a.title.toLowerCase().localeCompare(b.title.toLowerCase());
@@ -173,7 +174,7 @@ export class TasklistComponent implements OnInit {
       });
     }
 
-    // 日付の並び替え
+    // 日付でのフィルタリング
     if (this.filters.dateSort !== 'none') {
       filtered.sort((a, b) => {
         if (!a.date) return this.filters.dateSort === 'asc' ? 1 : -1;
@@ -183,7 +184,7 @@ export class TasklistComponent implements OnInit {
       });
     }
 
-    // 時間の並び替え
+    // 時間でのフィルタリング
     if (this.filters.timeSort !== 'none') {
       filtered.sort((a, b) => {
         if (!a.time) return this.filters.timeSort === 'asc' ? 1 : -1;
@@ -193,7 +194,7 @@ export class TasklistComponent implements OnInit {
       });
     }
 
-    // メモの並び替え
+    // メモでのフィルタリング
     if (this.filters.memoSort !== 'none') {
       filtered.sort((a, b) => {
         const comparison = a.memo?.toLowerCase().localeCompare(b.memo?.toLowerCase() ?? '') ?? 0;

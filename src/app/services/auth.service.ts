@@ -3,7 +3,7 @@ import { Auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signO
 import { Router } from '@angular/router';
 import { UserService } from './user.service';
 import { NgZone } from '@angular/core';
-
+import { Observable, of } from 'rxjs';
 @Injectable({
   providedIn: 'root'
 })

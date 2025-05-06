@@ -1,1 +1,55 @@
-<p>dashboad works!</p>
+<div class="container-fluid">
+  <h2 class="bg-light">ダッシュボード</h2>
+    <div class="row g-3">
+        <div class="col-md-6 col-lg-3">
+            <div class="chart-wrapper p-3 border bg-light rounded shadow-sm">
+                <h3 class="text-center mb-3">タスク完了率</h3>
+                    <canvas baseChart
+                        [data]="taskCompletedData"
+                        [labels]="taskCompletedLabels"
+                        [options]="taskCompletedOptions"
+                        [legend]="taskCompletedLegend"
+                        [type]="taskCompletedType">
+                    </canvas>
+            </div>
+        </div>  
+        <div class="col-md-6 col-lg-3">
+            <div class="chart-wrapper p-3 border bg-light rounded shadow-sm">
+                <h3 class="text-center mb-3">ステータス別タスク数</h3>
+                    <canvas baseChart
+                        [data]="statusChartData"
+                        [labels]="statusChartLabels"
+                        [options]="statusChartOptions"
+                        [legend]="statusChartLegend"
+                        [type]="statusChartType">
+                    </canvas>
+            </div>
+        </div>
+    
+        <div class="col-md-6 col-lg-3">
+            <div class="chart-wrapper p-3 border bg-light rounded shadow-sm">
+                <h3 class="text-center mb-3">優先度別タスク数</h3>
+                    <canvas baseChart
+                        [data]="priorityTaskData"
+                        [labels]="priorityTaskLabels"
+                        [options]="priorityTaskOptions"
+                        [legend]="priorityTaskLegend"
+                        [type]="priorityTaskType">
+                    </canvas>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="chart-wrapper p-3 border bg-light rounded shadow-sm">
+                <h3 class="text-center mb-3">担当者別タスク数</h3>
+                    <canvas baseChart
+                        [data]="assigneeTaskData"
+                        [labels]="assigneeTaskLabels"
+                        [options]="assigneeTaskOptions"
+                        [legend]="assigneeTaskLegend"
+                        [type]="assigneeTaskType">
+                    </canvas>
+            </div>
+        </div>
+    </div>
+</div>

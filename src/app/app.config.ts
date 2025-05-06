@@ -5,6 +5,7 @@ import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
 import { provideAuth, getAuth } from '@angular/fire/auth';
 import { provideFirestore, getFirestore } from '@angular/fire/firestore';
 import { provideStorage, getStorage } from '@angular/fire/storage';
+import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 // import { provideAnalytics, getAnalytics } from '@angular/fire/analytics';
 // import { ScreenTrackingService, UserTrackingService } from '@angular/fire/analytics';
 
@@ -25,7 +26,7 @@ export const appConfig: ApplicationConfig = {
     provideFirebaseApp(() => initializeApp(firebaseConfig)),
     provideAuth(() => getAuth()),
     provideFirestore(() => getFirestore()),
-    provideStorage(() => getStorage()),
+    provideStorage(() => getStorage()), provideCharts(withDefaultRegisterables()),
     // provideAnalytics(() => getAnalytics()),
     // ScreenTrackingService,
     // UserTrackingService,

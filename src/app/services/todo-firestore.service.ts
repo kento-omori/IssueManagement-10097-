@@ -11,10 +11,11 @@ import {
   getDocs,
   getDoc,
   writeBatch,
+  setDoc,
 } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 import { Auth } from '@angular/fire/auth';
-import { Todo } from '../todo/todo.interface';
+import { Todo, GanttLink } from '../todo/todo.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -30,9 +31,7 @@ export class TodoFirestoreService {
 
   // Todoリストの取得
   getTodos(): Observable<Todo[]> {
-    console.log('getTodos');
     try {
-      console.log('getTodos try');
       const collectionRef = collection(this.firestore, this.collectionPath);
       return collectionData(collectionRef, { idField: 'dbid' }) as Observable<Todo[]>; // dbidも取得しないと、CRUDするときにエラーが出る（ID取得できていないからコレクションパスがundefinedになる）
     } catch (error) {
@@ -55,6 +54,7 @@ export class TodoFirestoreService {
   async updateTodo(id: string, data: Partial<Todo>): Promise<void> {
     const todoRef = doc(this.firestore, this.collectionPath, id);
     await updateDoc(todoRef, data);
+    // console.log('updateTodo', data.links);
   }
 
   // IDを指定してTodoを取得
@@ -75,7 +75,8 @@ export class TodoFirestoreService {
           status: data['status'],
           priority: data['priority'],
           progress: data['progress'],
-          order: data['order']         
+          order: data['order'],
+          links: data['links'] || []
         } as Todo;
       } else {
         return null;
@@ -97,6 +98,7 @@ export class TodoFirestoreService {
     }
   };
 
+  // タスクの順番を更新（バッチ処理用）
   async batchUpdateOrder(updates: { dbid: string, order: number }[]) {
     const batch = writeBatch(this.firestore);
     updates.forEach(update => {
@@ -104,5 +106,32 @@ export class TodoFirestoreService {
       batch.update(ref, { order: update.order });
     });
     await batch.commit();
+  }
+
+  //  指定したタスク(dbid)のlinks配列にリンクを追加する
+  async addLinkToTask(dbid: string, link: { id: string, source: string, target: string, type: string }) {
+    const taskRef = doc(this.firestore, this.collectionPath, dbid);
+    console.log('addLinkToTask taskRef:', taskRef.path);
+    const taskSnap = await getDoc(taskRef);
+    let links = [];
+    if (taskSnap.exists()) {
+      const data = taskSnap.data();
+      links = Array.isArray(data['links']) ? data['links'] : [];
+    }
+    links.push(link);
+    await setDoc(taskRef, { links }, { merge: true });
+  }
+
+  // 指定したタスク(dbid)のlinks配列からリンクを削除する
+  async deleteLinkFromTask(dbid: string, linkId: string) {
+    const taskRef = doc(this.firestore, this.collectionPath, dbid);
+    const taskSnap = await getDoc(taskRef);
+    if (taskSnap.exists()) {
+      console.log('deleteLinkFromTask taskSnap:', taskSnap.data());
+      const data = taskSnap.data();
+      const links = Array.isArray(data['links']) ? data['links'] : [];
+      const newLinks = links.filter((l: any) => String(l.id) !== String(linkId));
+      await setDoc(taskRef, { links: newLinks }, { merge: true });
+    }
   }
 }

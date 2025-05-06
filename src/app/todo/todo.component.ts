@@ -10,11 +10,11 @@ import { TodoFirestoreService } from '../services/todo-firestore.service';
 import { IdManagerService } from '../services/id-manager.service';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
-
+import { RouterModule } from '@angular/router';
 @Component({
   selector: 'app-todo',
   standalone: true,
-  imports: [ReactiveFormsModule, CommonModule, FindPipe, FormsModule, DragDropModule],
+  imports: [ReactiveFormsModule, CommonModule, FindPipe, FormsModule, DragDropModule, RouterModule],
   templateUrl: './todo.component.html',
   styleUrl: './todo.component.css'
 })
@@ -202,13 +202,15 @@ export class TodoComponent implements OnInit, OnDestroy {
       const formValue = {
         ...this.todoForm.getRawValue(),
         id: this.editingTodo ? this.editingTodo.id : this.getNextAvailableId(),
-        completed: false,
+        // completed: false,
+        progress: 0,
         customFields: this.customFields.map(field => ({
           ...field,
           value: this.todoForm.get(`custom_${field.id}`)?.value || ''
         })),
         comments: [],
-        order: this.editingTodo ? this.editingTodo.order : maxOrder + 1
+        order: this.editingTodo ? this.editingTodo.order : maxOrder + 1,
+        links: []
       };
 
       // 既存のTodoを更新  

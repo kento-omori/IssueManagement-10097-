@@ -1,6 +1,6 @@
 <br>
-<br>
-
+<div class="container-fluid">
+<h2 class="bg-light">カレンダー</h2>
 <!-- データが揃うまでカレンダーを描画しない -->
 <div *ngIf="!isLoading">
   <full-calendar [options]="calendarOptions"></full-calendar>
@@ -73,4 +73,5 @@
     <button type="button" class="delete-btn" (click)="deleteEvent(editingCalendarEvent.id!); showEditForm = false">削除</button>
     <button type="button" (click)="showEditForm = false">キャンセル</button>
   </form>
+</div>
 </div>

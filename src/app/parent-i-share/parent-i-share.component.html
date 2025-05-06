@@ -1,4 +1,10 @@
-<div class="container mt-4"> <div class="card shadow-sm mb-4">
+<div class="container-fluid">
+  <div class="row justify-content-end mt-1" >
+    <a class="btn btn-outline-primary col-auto" routerLink="/private">ダッシュボード</a>
+  </div>
+</div>
+
+<div class="container mt-1"> <div class="card shadow-sm mb-4">
     <div class="card-header bg-primary text-white">
         <h2 class="h5 mb-0">情報共有スペース</h2>
     </div>
@@ -14,12 +20,13 @@
               placeholder="新しいスペースのタイトル"
               required
               minlength="2"
+              maxlength="20"
               #titleRef="ngModel"
             >
             <div style="min-height: 1.5em;">
               <span *ngIf="titleRef.invalid && (titleRef.dirty || titleRef.touched)" class="text-danger small">
                 <span *ngIf="titleRef.errors?.['required']">タイトルは必須です。</span>
-                <span *ngIf="titleRef.errors?.['minlength']">2文字以上入力してください。</span>
+                <span *ngIf="titleRef.errors?.['minlength']">2文字以上20文字以内で入力してください。</span>
               </span>
             </div>
           </div>

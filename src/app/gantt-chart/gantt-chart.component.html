@@ -1,6 +1,11 @@
-<br>
-<h3>追加フォーム</h3>
-<form [formGroup]="taskForm" (ngSubmit)="addTask()" class="gantt-input-form p-3 mb-4 bg-light rounded border">
+<div class="container-fluid">
+  <div class="row justify-content-end mt-1" >
+    <a class="btn btn-outline-primary col-auto" routerLink="/private">ダッシュボード</a>
+    <a class="btn btn-outline-primary col-auto" routerLink="/todo">TO DO リスト</a>
+  </div>
+</div>
+
+<form [formGroup]="taskForm" (ngSubmit)="addTask()" class="gantt-input-form p-3 mt-1 mb-4 bg-light rounded border">
   <div class="row g-2 align-items-start flex-nowrap">
     <div class="col-1 form-group">
       <label for="ganttId" class="form-label mb-0">管理番号</label>

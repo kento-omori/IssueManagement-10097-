@@ -37,7 +37,15 @@ export interface Todo {
   customFields?: CustomField[];
   comments?: Comment[];
   order: number;
+  links: GanttLink[];
 } 
+
+export interface GanttLink {
+  id: string;
+  source: string;
+  target: string;
+  type: string;
+}
 
 export interface Filters {
   id: string;

@@ -1,11 +1,21 @@
+<br>
 <div class="container-fluid">
   <div class="row align-items-center">
-    <div class="col-4">
-      <h3>タイトル: {{ space?.title }}</h3>
-      <button (click)="closeSpace()">このスペースを閉じる</button>
+    <div class="col-8">
+      <h2>タイトル: {{ space?.title }}</h2>
+    </div>
+    <div class="col-4 text-end">
+      <button class="btn btn-outline-primary btn-lg px-4 fw-bold shadow-sm"
+       (click)="closeSpace()">
+       このスペースを閉じる<i class="fa fa-sign-out-alt ms-2"></i>
+      </button>
+    </div>
+    <div class="col-12">
+      <h6>スペースの説明： {{ space?.description }}</h6>
     </div>
   </div>
 </div>
+<hr>
 
 <!-- コメントリスト表示 -->
 <div class="container-fluid" style="padding-top: 10px; padding-bottom: 15em; overflow-y: auto;">
