@@ -1,11 +1,15 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartData, ChartOptions, ChartType, ChartEvent } from 'chart.js';
-import { TodoFirestoreService } from '../services/todo-firestore.service';
-import { Todo } from '../todo/todo.interface';
 import Chart from 'chart.js/auto';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 Chart.register(ChartDataLabels);
+import { NavigationService } from '../services/navigation.service';
+import { ProjectFirestoreService } from '../services/project-firestore.service';
+import { TodoFirestoreService } from '../services/todo-firestore.service';
+import { Todo } from '../todo/todo.interface';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-dashboad',
@@ -14,7 +18,8 @@ Chart.register(ChartDataLabels);
   templateUrl: './dashboad.component.html',
   styleUrl: './dashboad.component.css'
 })
-export class DashboadComponent implements OnInit {
+export class DashboadComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   todos: Todo[] = [];
 
   // ドーナツチャートのプロパティ
@@ -106,13 +111,25 @@ export class DashboadComponent implements OnInit {
   priorityTaskLegend = true;
   priorityTaskType: ChartType = 'pie';
 
-  constructor(private todoFirestoreService: TodoFirestoreService) {}
+  constructor(
+    private todoFirestoreService: TodoFirestoreService,
+    private projectFirestoreService: ProjectFirestoreService,
+    private navigationService: NavigationService
+  ) {}
 
+  // 初期化
   ngOnInit(): void {
-    this.todoFirestoreService.getTodos().subscribe((todos: Todo[]) => {
-      this.todos = todos;
-      this.setupCharts();
-    });
+    this.todoFirestoreService.getTodos().pipe(takeUntil(this.destroy$))
+      .subscribe((todos: Todo[]) => {
+        this.todos = todos;
+        this.setupCharts();
+      });
+  }
+
+  // 破棄（購読を解除する）
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   setupCharts() {

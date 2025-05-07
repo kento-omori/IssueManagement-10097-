@@ -709,5 +709,15 @@ export class TodoComponent implements OnInit, OnDestroy {
     ].some(sort => sort !== 'none');
     return !(isFiltered || isSorted);
   }
+
+  goDashboad() {
+    this.todoFirestoreService.goDashboad();
+  }
+
+  goGanttChart() {
+    this.todoFirestoreService.goGanttChart();
+  }
+
+
 }
 

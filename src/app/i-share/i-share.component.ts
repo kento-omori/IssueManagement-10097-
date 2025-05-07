@@ -98,10 +98,8 @@ export class IShareComponent implements OnInit {
   }
 
   // スペースを閉じる処理
-  closeSpace(): void {
-    if (this.space?.dbid !== null) {
-      this.router.navigate(['/parent-i-share']);
-    }
+  goParentIShare(): void {
+    this.ishareFirestoreService.goParentIShare();
   }
 
   // 初期化

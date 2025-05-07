@@ -1,0 +1,354 @@
+<div class="container-fluid">
+    <div class="row justify-content-end mt-1" >
+      <a class="btn btn-outline-primary col-auto" (click)="goDashboad()">ダッシュボード</a>
+    </div>
+</div>
+
+<ng-template #noMembers>
+    <div class="alert alert-secondary text-center" role="alert">
+        <p class="lead mb-0">プロジェクトメンバーはいません。</p>
+    </div>
+</ng-template>
+
+<div class="container-fluid">
+    <h2 class="bg-primary-subtle mt-3">プロジェクトメンバー一覧</h2>
+    <div *ngIf="projectMembers.length > 0; else noMembers" class="row row-cols-12 g-4">
+        <div *ngFor="let member of projectMembers; let i = index" class="col-3">
+            <div class="card h-100 shadow-hover border-5 border-primary-subtle">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title text-primary">
+                        {{ member.displayName }}
+                    </h5>
+                    <hr>
+                    <p class="card-text text-muted flex-grow-1"><i class="fa-solid fa-id-card"></i>
+                         ユーザＩＤ：{{ member.uid }} </p>
+                    <p class="card-text text-muted flex-grow-1"><i class="fa-regular fa-envelope"></i>
+                         メールアドレス：{{ member.email }} </p>
+                    <p class="card-text text-muted flex-grow-1"><i class="fa-solid fa-user-shield"></i>
+                         権限：
+                         <span *ngIf="member.isAdmin" class="role-label admin-label">管理者</span>
+                         <span *ngIf="member.isOwner" class="role-label owner-label">オーナー</span>
+                         <span *ngIf="!member.isAdmin && !member.isOwner" class="role-label">なし</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <h2 class="bg-primary-subtle mt-3">メンバーを検索してこのプロジェクトに追加する（管理者権限が必要）</h2>
+    <form (ngSubmit)="searchUser()" #searchForm="ngForm" class="mb-3">
+        <div class="row mb-2">
+            <div class="col">
+                <input
+                    type="text"
+                    [(ngModel)]="searchInput"
+                    name="searchInput"
+                    class="form-control"
+                    placeholder="メールアドレス・ユーザーID・表示名のいずれかを入力"
+                />
+            </div>
+            <div class="col-auto">
+                <button
+                    type="submit"
+                    class="btn btn-primary"
+                    [disabled]="!searchInput"
+                >
+                    検索
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <div *ngIf="searchMessage" class="alert alert-warning">{{ searchMessage }}</div>
+
+    <div *ngIf="searchedUsers.length > 0">
+        <p>検索結果:</p>
+        <ul class="list-group">
+            <li *ngFor="let user of searchedUsers" class="list-group-item"
+                [class.active]="selectedUser && selectedUser.uid === user.uid"
+                (click)="selectUser(user)">
+                {{ user.displayName }} ({{ user.email }})
+            </li>
+        </ul>
+        <button
+            (click)="onAddMemberSubmit()"
+            [disabled]="isAdding || !isCurrentUserAdmin || !selectedUser"
+            class="btn btn-success mt-2"
+        >
+            {{ isAdding ? '追加中...' : 'このメンバーを追加する' }}
+        </button>
+        <div *ngIf="!isCurrentUserAdmin" class="text-danger mt-2">
+            ※メンバー追加は管理者権限が必要です
+        </div>
+    </div>
+    <div
+      *ngIf="addMemberMessage"
+      [ngClass]="{
+        'text-dark': addMemberMessage === 'メンバーを追加しました。',
+        'text-danger': addMemberMessage !== 'メンバーを追加しました。'
+      }"
+      class="mt-2"
+    >
+      {{ addMemberMessage }}
+    </div>
+</div>
+
+<!-- <div class="container-fluid">
+    <h2 class="bg-primary-subtle mt-3">このプロジェクトへ招待する（管理者権限が必要）</h2>
+    <form (ngSubmit)="onInviteSubmit()" #inviteForm="ngForm">
+        <div class="mb-3">
+            <label for="email" class="form-label">メールアドレス</label>
+            <input type="email" class="form-control" id="email" name="email" required>
+        </div>
+        <button type="submit" class="btn btn-primary">招待する</button>
+    </form>
+</div> -->
+
+<div class="container-fluid">
+    <h2 class="bg-primary-subtle mt-3">このプロジェクトの管理者権限を設定する（管理者権限が必要）</h2>
+    <form (ngSubmit)="onAddAdminSubmit()" #addAdminForm="ngForm" autocomplete="off">
+        <div class="mb-3 position-relative">
+            <input
+                type="text"
+                class="form-control"
+                placeholder="ユーザー名またはメールアドレスを選択"
+                (focus)="onAdminInputFocus()"
+                (blur)="onAdminInputBlur()"
+                [value]="adminInputValue"
+                readonly
+            />
+            <!-- メンバーリスト（ドロップダウン） -->
+            <ul
+                class="list-group position-absolute w-100"
+                *ngIf="showMemberListForAdmin"
+                style="z-index: 1000; max-height: 200px; overflow-y: auto;"
+            >
+                <li
+                    *ngFor="let member of projectMembers"
+                    class="list-group-item list-group-item-action"
+                    (click)="selectAdminUser(member)"
+                    [class.active]="selectedAdminUser && selectedAdminUser.uid === member.uid"
+                    style="cursor: pointer;"
+                >
+                    {{ member.displayName }}（{{ member.email }}）
+                    <span *ngIf="member.isAdmin" class="badge bg-primary ms-2">管理者</span>
+                    <span *ngIf="member.isOwner" class="badge bg-danger ms-2">オーナー</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- ↓ここから選択後のみ表示 -->
+        <div *ngIf="selectedAdminUser">
+            <div class="mb-2">
+                <strong>選択中：</strong>
+                {{ selectedAdminUser.displayName }}（{{ selectedAdminUser.email }}）
+                <span *ngIf="selectedAdminUser.isAdmin" class="badge bg-primary ms-2">管理者</span>
+                <span *ngIf="selectedAdminUser.isOwner" class="badge bg-danger ms-2">オーナー</span>
+            </div>
+            <button
+                type="submit"
+                class="btn btn-success me-2"
+                [disabled]="!selectedAdminUser || isAdding || selectedAdminUser.isAdmin"
+            >
+                管理者権限を追加
+            </button>
+            <button
+                type="button"
+                class="btn btn-danger"
+                (click)="onRemoveAdminSubmit()"
+                [disabled]="
+                    !selectedAdminUser.isAdmin ||
+                    isAdding ||
+                    (adminCount === 1 && selectedAdminUser.isAdmin)
+                "
+            >
+                管理者権限を削除
+            </button>
+        </div>
+    </form>
+    <div
+        *ngIf="addAdminMessage"
+        [ngClass]="{
+        'text-dark': addAdminMessage === '管理者権限を追加しました。',
+        'text-danger': addAdminMessage !== '管理者権限を追加しました。'
+        }"
+        class="mt-2"
+        >
+        {{ addAdminMessage }}
+    </div>
+</div>
+
+<div class="container-fluid">
+    <h2 class="bg-primary-subtle mt-3">このプロジェクトのオーナー権限を設定する（オーナー権限が必要）</h2>
+    <form (ngSubmit)="onAddOwnerSubmit()" #addOwnerForm="ngForm" autocomplete="off">
+      <div class="mb-3 position-relative">
+        <input
+          type="text"
+          class="form-control"
+          placeholder="ユーザー名またはメールアドレスを選択"
+          (focus)="onOwnerInputFocus()"
+          (blur)="onOwnerInputBlur()"
+          [value]="ownerInputValue"
+          readonly
+        />
+        <!-- メンバーリスト（ドロップダウン） -->
+        <ul
+          class="list-group position-absolute w-100"
+          *ngIf="showMemberListForOwner"
+          style="z-index: 1000; max-height: 200px; overflow-y: auto;"
+        >
+          <li
+            *ngFor="let member of projectMembers"
+            class="list-group-item list-group-item-action"
+            (click)="selectOwnerUser(member)"
+            [class.active]="selectedOwnerUser && selectedOwnerUser.uid === member.uid"
+            style="cursor: pointer;"
+          >
+            {{ member.displayName }}（{{ member.email }}）
+            <span *ngIf="member.isAdmin" class="badge bg-primary ms-2">管理者</span>
+            <span *ngIf="member.isOwner" class="badge bg-danger ms-2">オーナー</span>
+          </li>
+        </ul>
+      </div>
+      <div *ngIf="selectedOwnerUser">
+        <div class="mb-2">
+          <strong>選択中：</strong>
+          {{ selectedOwnerUser.displayName }}（{{ selectedOwnerUser.email }}）
+          <span *ngIf="selectedOwnerUser.isAdmin" class="badge bg-primary ms-2">管理者</span>
+          <span *ngIf="selectedOwnerUser.isOwner" class="badge bg-danger ms-2">オーナー</span>
+        </div>
+        <button
+          type="submit"
+          class="btn btn-success"
+          [disabled]="!selectedOwnerUser || isAdding"
+        >
+          オーナー権限を追加
+        </button>
+        <button
+          type="button"
+          class="btn btn-danger"
+          (click)="onRemoveOwnerSubmit()"
+          [disabled]="
+            !selectedOwnerUser.isOwner ||
+            isAdding ||
+            (ownerCount === 1 && selectedOwnerUser.isOwner)
+          "
+        >
+          オーナー権限を削除
+        </button>
+      </div>
+    </form>
+    <div
+      *ngIf="addOwnerMessage"
+      [ngClass]="{
+        'text-dark': addOwnerMessage === 'オーナー権限を追加しました。',
+        'text-danger': addOwnerMessage !== 'オーナー権限を追加しました。'
+      }"
+      class="mt-2"
+    >
+      {{ addOwnerMessage }}
+    </div>
+</div>
+
+<div class="container-fluid">
+    <h2 class="bg-danger-subtle mt-3">このプロジェクトのメンバーを削除する（管理者権限が必要）</h2>
+    <form (ngSubmit)="onRemoveMemberSubmit()" #removeMemberForm="ngForm" autocomplete="off">
+      <div class="mb-3 position-relative">
+        <input
+          type="text"
+          class="form-control"
+          placeholder="ユーザー名またはメールアドレスを選択"
+          (focus)="onRemoveInputFocus()"
+          (blur)="onRemoveInputBlur()"
+          [value]="removeInputValue"
+          readonly
+        />
+        <!-- メンバーリスト（ドロップダウン） -->
+        <ul
+          class="list-group position-absolute w-100"
+          *ngIf="showMemberListForRemove"
+          style="z-index: 1000; max-height: 200px; overflow-y: auto;"
+        >
+          <li
+            *ngFor="let member of projectMembers"
+            class="list-group-item list-group-item-action"
+            (click)="selectRemoveUser(member)"
+            [class.active]="selectedRemoveUser && selectedRemoveUser.uid === member.uid"
+            style="cursor: pointer;"
+          >
+            {{ member.displayName }}（{{ member.email }}）
+            <span *ngIf="member.isAdmin" class="badge bg-primary ms-2">管理者</span>
+            <span *ngIf="member.isOwner" class="badge bg-danger ms-2">オーナー</span>
+          </li>
+        </ul>
+      </div>
+      <div *ngIf="selectedRemoveUser">
+        <div class="mb-2">
+          <strong>選択中：</strong>
+          {{ selectedRemoveUser.displayName }}（{{ selectedRemoveUser.email }}）
+          <span *ngIf="selectedRemoveUser.isAdmin" class="badge bg-primary ms-2">管理者</span>
+          <span *ngIf="selectedRemoveUser.isOwner" class="badge bg-danger ms-2">オーナー</span>
+        </div>
+        <button
+          type="submit"
+          class="btn btn-danger"
+          [disabled]="
+            !selectedRemoveUser ||
+            isAdding ||
+            selectedRemoveUser.isAdmin ||
+            selectedRemoveUser.isOwner
+          "
+        >
+          メンバーを削除
+        </button>
+        <div *ngIf="selectedRemoveUser && (selectedRemoveUser.isAdmin || selectedRemoveUser.isOwner)" class="text-danger mt-2">
+          管理者またはオーナーの権限をもつメンバーは削除できません
+        </div>
+      </div>
+    </form>
+    <div
+      *ngIf="removeMemberMessage"
+      [ngClass]="{
+        'text-dark': removeMemberMessage === 'メンバーを削除しました。',
+        'text-danger': removeMemberMessage !== 'メンバーを削除しました。'
+      }"
+      class="mt-2"
+    >
+      {{ removeMemberMessage }}
+    </div>
+</div>
+  
+<div class="container-fluid">
+    <h2 class="bg-danger-subtle mt-3">このプロジェクトを削除する（オーナー権限が必要）</h2>
+    <div *ngIf="isCurrentUserOwner; else notOwner">
+      <button
+        type="button"
+        class="btn btn-danger"
+        (click)="onDeleteProject()"
+        [disabled]="isDeletingProject"
+      >
+        プロジェクトを削除
+      </button>
+    </div>
+    <ng-template #notOwner>
+      <div class="text-danger mt-2">
+        ※オーナー権限を持つ場合のみ削除可能です
+      </div>
+    </ng-template>
+    <div
+      *ngIf="deleteProjectMessage"
+      [ngClass]="{
+        'text-dark': deleteProjectMessage === 'プロジェクトを削除しました。',
+        'text-danger': deleteProjectMessage !== 'プロジェクトを削除しました。'
+      }"
+      class="mt-2"
+    >
+      {{ deleteProjectMessage }}
+    </div>
+</div>
+
+
+
+

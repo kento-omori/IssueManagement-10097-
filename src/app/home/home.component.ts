@@ -1,13 +1,12 @@
 import { Component, OnInit } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { CalendarComponent } from '../calendar/calendar.component';
-import { NotificationComponent } from '../notification/notification.component';
+import { HomeNotificationComponent } from '../home-notification/home-notification.component';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, CommonModule, CalendarComponent, NotificationComponent],
+  imports: [ CommonModule, CalendarComponent, HomeNotificationComponent],
   templateUrl: './home.component.html',
   styleUrl: './home.component.css'
 })

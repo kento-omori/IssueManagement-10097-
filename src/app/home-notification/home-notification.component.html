@@ -13,10 +13,15 @@
             <div class="card h-100 shadow-hover border-5 border-danger-subtle">
                 <div class="card-body d-flex flex-column">
                     <h5 class="card-title text-danger">
-                        <a (click)="goTodo()" class="text-danger text-decoration-none stretched-link fw-bold">
-                            <i class="fa-solid fa-triangle-exclamation"></i>{{ todo.text }}<i class="fa-solid fa-triangle-exclamation"></i> 
+                        <a
+                            class="text-danger text-decoration-none stretched-link fw-bold"
+                            (click)="goTodo(todo)"
+                            style="cursor:pointer;"
+                        >
+                            <i class="fa-solid fa-triangle-exclamation"></i>{{ todo.text }}<i class="fa-solid fa-triangle-exclamation"></i>
                         </a>
                     </h5>
+                <p class="card-text text-muted flex-grow-1"> プロジェクト名：{{ todo.projectName }} </p>
                 <p class="card-text text-muted flex-grow-1"> 期日：{{ todo.end_date }} </p>
                 <p class="card-text text-muted flex-grow-1"> 担当者：{{ todo.assignee }} </p>
                 <p class="card-text text-muted flex-grow-1"> ステータス：{{ todo.status }} </p>
@@ -44,19 +49,24 @@
             <div class="card h-100 shadow-hover border-5 border-warning">
                 <div class="card-body d-flex flex-column">
                     <h5 class="card-title text-danger">
-                        <a (click)="goTodo()" class="text-black text-decoration-none stretched-link fw-bold">
+                        <a
+                            class="text-black text-decoration-none stretched-link fw-bold"
+                            style="cursor:pointer;"
+                            (click)="goTodo(todo)"
+                        >
                             {{ todo.text }}
                         </a>
                     </h5>
+                <p class="card-text text-muted flex-grow-1"> プロジェクト名：{{ todo.projectName }} </p>
                 <p class="card-text text-muted flex-grow-1"> 期日：{{ todo.end_date }} </p>
                 <p class="card-text text-muted flex-grow-1"> 担当者：{{ todo.assignee }} </p>
                 <p class="card-text text-muted flex-grow-1"> ステータス：{{ todo.status }} </p>
                 <p class="card-text text-muted flex-grow-1"> 優先度：{{ todo.priority }} </p>
                 <p class="card-text text-muted flex-grow-1"> 進捗：{{ todo.progress }}％ </p>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
 <br>
     <h2 class="bg-success-subtle ">１週間以内に期限がくるタスク一覧</h2>
@@ -72,16 +82,22 @@
             <div class="card h-100 shadow-hover border-5 border-success-subtle">
                 <div class="card-body d-flex flex-column">
                     <h5 class="card-title text-success">
-                        <a (click)="goTodo()" class="text-black text-decoration-none stretched-link fw-bold">
+                        <a
+                            class="text-black text-decoration-none stretched-link fw-bold"
+                            style="cursor:pointer;"
+                            (click)="goTodo(todo)"
+                        >
                             {{ todo.text }}
                         </a>
                     </h5>
+                <p class="card-text text-muted flex-grow-1"> プロジェクト名：{{ todo.projectName }} </p>
                 <p class="card-text text-muted flex-grow-1"> 期日：{{ todo.end_date }} </p>
                 <p class="card-text text-muted flex-grow-1"> 担当者：{{ todo.assignee }} </p>
                 <p class="card-text text-muted flex-grow-1"> ステータス：{{ todo.status }} </p>
                 <p class="card-text text-muted flex-grow-1"> 優先度：{{ todo.priority }} </p>
                 <p class="card-text text-muted flex-grow-1"> 進捗：{{ todo.progress }}％ </p>
                 <p class="card-text text-muted flex-grow-1"> 残り日数：{{ todo.lastDays }}日 </p>
+                </div>
             </div>
         </div>
     </div>

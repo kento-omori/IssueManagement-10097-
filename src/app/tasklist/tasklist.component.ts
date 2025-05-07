@@ -5,6 +5,8 @@ import { CdkDragDrop, moveItemInArray, DragDropModule, CdkDrag, CdkDropList } fr
 import { FormsModule } from '@angular/forms';
 import { TasklistFirestoreService } from '../services/tasklist-firestore.service';
 import { RouterModule } from '@angular/router';
+import { NavigationService } from '../services/navigation.service';
+import { Router } from '@angular/router';
 
 export interface TaskLists {
   id?: string;
@@ -50,7 +52,9 @@ export class TasklistComponent implements OnInit {
   
   constructor(
     private tasklistFirestoreService: TasklistFirestoreService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private navigationService: NavigationService,
+    private router: Router
   ) { }
 
   taskLists: TaskLists[] = [];
@@ -355,4 +359,8 @@ export class TasklistComponent implements OnInit {
     );
   }
 
+  goDashboad() {
+    const userId = this.navigationService.selectedUserIdSource.getValue();
+    this.router.navigate(['users', userId, 'private']);
+  }
 }

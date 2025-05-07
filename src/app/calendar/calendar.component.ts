@@ -9,8 +9,10 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { TodoFirestoreService } from '../services/todo-firestore.service';
 import { CalendarFirestoreService } from '../services/calendar-firestore.service';
 import { Todo } from '../todo/todo.interface';
-import { Subscription, forkJoin } from 'rxjs';
-import { take } from 'rxjs/operators';
+import { Subscription } from 'rxjs';
+import { NavigationService } from '../services/navigation.service';
+import { UserService } from '../services/user.service';
+import { Notification } from '../home-notification/home-notification.component';
 
 export interface CalendarEvent {      // カレンダー上で作成するもの限定の型
   id?: string;    //データベースのid
@@ -31,7 +33,7 @@ export class CalendarComponent implements OnInit, OnDestroy {
   showEventForm = false;
   showEditForm = false;
   selectedDate: string = '';
-  todoEvents: Todo[] = [];          // TODOリストから取得したデータ
+  todoEvents: Notification[] = [];          // TODOリストから取得したデータ
   calendarEvents: CalendarEvent[] = [];  // カレンダー上で作成されるデータ
   isLoading = true;  // 追加
   newEvent: CalendarEvent = {
@@ -40,7 +42,7 @@ export class CalendarComponent implements OnInit, OnDestroy {
     end: ''
   };
   editingCalendarEvent: CalendarEvent | null = null;
-  editingTodoEvent: Todo | null = null;
+  editingTodoEvent: Notification | null = null;
 
   // カレンダーの表示設定
   calendarOptions: CalendarOptions = {
@@ -73,37 +75,42 @@ export class CalendarComponent implements OnInit, OnDestroy {
   constructor(
     private todoFirestoreService: TodoFirestoreService,
     private calendarFirestoreService: CalendarFirestoreService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private navigationService: NavigationService,
+    private userService: UserService
   ) {
     console.log('Calendar constructor');
   }
 
   ngOnInit() {
     this.isLoading = true;
-    // リアルタイム購読
-    const todoSub = this.todoFirestoreService.getTodos().subscribe({
-      next: (tasks: Todo[]) => {
-        this.todoEvents = tasks.map(task => ({
-          ...task,
-          end_date: this.addOneDay(task.end_date)
-        }));
-        this.updateCalendarEvents();
-      },
-      error: (error) => console.error('Error loading todos:', error)
-    });
-
-    const calendarSub = this.calendarFirestoreService.getCalendarEvents().subscribe({
-      next: (events) => {
-        this.calendarEvents = events.map(event => ({
-          ...event,
-          end: this.addOneDay(event.end)
-        }));
-        this.updateCalendarEvents();
-      },
-      error: (error) => console.error('Error loading calendar events:', error)
-    });
-
-    this.subscriptions.push(todoSub, calendarSub);
+    const userId = this.navigationService.selectedUserIdSource.getValue();
+    if (userId) {
+      this.userService.getUserById(userId).then((userProfile) => {
+        const userDisplayName = userProfile?.displayName || '';
+        const todoSub = this.todoFirestoreService.getAllTodosForUserRealtime(userId, userDisplayName).subscribe({
+          next: (tasks: Todo[]) => {
+            this.todoEvents = tasks.map(task => ({
+              ...task,
+              end_date: this.addOneDay(task.end_date)
+            }));
+            this.updateCalendarEvents();
+          },
+          error: (error) => console.error('Error loading todos:', error)
+        });
+        const calendarSub = this.calendarFirestoreService.getCalendarEvents().subscribe({
+          next: (events) => {
+            this.calendarEvents = events.map(event => ({
+              ...event,
+              end: this.addOneDay(event.end)
+            }));
+            this.updateCalendarEvents();
+          },
+          error: (error) => console.error('Error loading calendar events:', error)
+        });
+        this.subscriptions.push(todoSub, calendarSub);
+      });
+    }
   }
 
   ngOnDestroy() {
@@ -115,10 +122,10 @@ export class CalendarComponent implements OnInit, OnDestroy {
     const events = [
       ...this.todoEvents.map(todo => ({
         id: todo.dbid,
-        title: todo.text,
+        title: todo.text + '（' + todo.projectName + '）',
         start: todo.start_date,
         end: todo.end_date,
-        color: '#007bff' // 青
+        color: todo.pjid ? '#ffd700' : '#007bff' // プロジェクトは黄色, 個人は青
       })),
       ...this.calendarEvents.map(event => ({
         ...event,
@@ -209,8 +216,9 @@ export class CalendarComponent implements OnInit, OnDestroy {
         console.error('イベント更新エラー:', error);
       }
     } else if (this.editingTodoEvent?.dbid) {
+      const { pjid, projectName, id, ...updateTodoData } = this.editingTodoEvent;
       try {
-        await this.todoFirestoreService.updateTodo(this.editingTodoEvent.dbid, this.editingTodoEvent);
+        await this.todoFirestoreService.updateTodo(this.editingTodoEvent.dbid, updateTodoData, pjid!);
         this.showEditForm = false;
         this.editingTodoEvent = null;
       } catch (error) {
@@ -229,7 +237,7 @@ export class CalendarComponent implements OnInit, OnDestroy {
         if (!confirm('TODOリストに登録されているタスクです。本当に消しますか？')) {
           return; // キャンセルされた場合は処理を中止
         }
-        await this.todoFirestoreService.deleteTodo(eventId);
+        await this.todoFirestoreService.deleteTodo(eventId, todoEvent.pjid!);
         return;
       }
       // カレンダーイベントの場合は直接削除

@@ -1,20 +1,35 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet,RouterLink,RouterLinkActive,Routes } from '@angular/router';
+import { RouterOutlet,RouterLink,RouterLinkActive } from '@angular/router';
 import { AuthService } from './services/auth.service';
+import { NavigationService } from './services/navigation.service';
+import { Router, NavigationEnd, ActivatedRoute } from '@angular/router';
+import { filter } from 'rxjs/operators';
+import { ProjectFirestoreService } from './services/project-firestore.service';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet,RouterLink,RouterLinkActive],
+  imports: [CommonModule, RouterOutlet],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
 
 export class AppComponent {
   title = 'issuemanagement';
+  currentProjectName: string = '';
   
-  constructor(public authService: AuthService) {}
+  constructor(
+    public authService: AuthService,
+    public navigationService: NavigationService,
+    private router: Router,
+    private route: ActivatedRoute,
+    private projectFirestoreService: ProjectFirestoreService
+  ) {
+    // ルーティングやサービスの状態に応じてプロジェクト名をセット
+    this.setCurrentProjectName();
+  }
 
   async logout() {
     try {
@@ -22,5 +37,79 @@ export class AppComponent {
     } catch (error) {
       console.error('ログアウトエラー:', error);
     }
+  }
+
+  async setCurrentProjectName() {
+    // ActivatedRouteからURLパラメータを直接取得
+    let currentRoute = this.route.root;
+    let currentRouteFirst = currentRoute.firstChild;
+    while (currentRoute.firstChild) {
+      currentRoute = currentRoute.firstChild;
+    }
+    const projectId = currentRoute.snapshot.paramMap.get('projectId');
+    if (!projectId) {
+      if(currentRouteFirst?.snapshot.url[0].path === 'projects') {
+        this.currentProjectName = 'プロジェクト一覧';
+      } else if (currentRouteFirst?.snapshot.url[0].path === 'users') {
+        this.currentProjectName = '個人ワークスペース';
+      } else {
+        this.currentProjectName = '';
+      };
+    } else {
+      // Firestoreからプロジェクト名を取得
+      const project = await firstValueFrom(this.projectFirestoreService.getProjectById(projectId));
+      if (project) {
+        this.currentProjectName = project.title;
+      } else {
+        this.currentProjectName = 'プロジェクトが見つかりません';
+      }
+    }
+  }
+
+  ngOnInit() {
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe(() => {
+      let currentRoute = this.route.root;
+      while (currentRoute.firstChild) {
+        currentRoute = currentRoute.firstChild;
+      }
+      // userId
+      let userId = currentRoute.snapshot.paramMap.get('userId');
+      if (!userId) {
+        // URLにuserIdがない場合はAuthServiceから取得→URLにuserIdやprojectIdがない場合
+        userId = this.authService.getCurrentUserId(); // ここは実装に合わせて
+      }
+      if (userId) {
+        this.navigationService.setSelectedUserId(userId);
+      }
+      // projectId
+      const projectId = currentRoute.snapshot.paramMap.get('projectId');
+      if (projectId) {
+        this.navigationService.setSelectedProjectId(projectId);
+      };
+      // プロジェクト名や個人ワークスペース名を即座に反映
+      this.setCurrentProjectName();
+    });
+  }
+
+  goHome() {
+    this.navigationService.selectedUserId$.subscribe(userId => {
+      if (userId) {
+        this.router.navigate(['users', userId, 'home']);
+      }
+    }).unsubscribe(); // メモリリーク防止のため即時unsubscribe
+  }
+
+  goPrivate() {
+    this.navigationService.selectedUserId$.subscribe(userId => {
+      if (userId) {
+        this.router.navigate(['users', userId, 'private']);
+      }
+    }).unsubscribe();
+  }
+
+  goProjectHome() {
+    this.router.navigate(['projects']);
   }
 }

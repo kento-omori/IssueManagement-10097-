@@ -2,27 +2,23 @@
   <!-- 左側は題名とホームとワークスペース -->
   <div class="container-fluid">
     <div class="d-flex align-items-center">
-      <a class="navbar-brand" routerLink="home" [style.curosor]="'pointer'" routerLinkActive="active" 
-       ariaCurrentWhenActive="page">課題管理アプリ</a>
+      <a class="navbar-brand" (click)="goHome()" style="cursor:pointer;">課題管理アプリ</a>
       <ul class="navbar-nav me-auto">
         <li class="nav-item">
-          <a class="nav-link text-white" routerLink="home" [style.curosor]="'pointer'" routerLinkActive="active" 
-          ariaCurrentWhenActive="page">ホーム</a>
+          <a class="nav-link text-white" (click)="goHome()" style="cursor:pointer;">ホーム</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link text-white" routerLink="/private" [style.curosor]="'pointer'" routerLinkActive="active" 
-          ariaCurrentWhenActive="page">個人ワークスペース</a>
+          <a class="nav-link text-white" (click)="goPrivate()" style="cursor:pointer;">個人ワークスペース</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link text-white" routerLink="/projecthome" [style.curosor]="'pointer'" routerLinkActive="active" 
-          ariaCurrentWhenActive="page">共有ワークスペース</a>
+          <a class="nav-link text-white" (click)="goProjectHome()" style="cursor:pointer;">共有ワークスペース</a>
         </li>
       </ul>
     </div>
-        <!-- 右側は検索フォーム -->
-    <div class="row d-flex align-items-center">
+        <!-- 右側は検索フォーム（グーグル検索） -->
+    <!-- <div class="row d-flex align-items-center">
       <div class="text-center"> <form method="get" action="http://www.google.co.jp/search">
-        <table bgcolor="#007bff">
+        <table class="bg-primary">
           <tr>
             <td>
               <a href="http://www.google.co.jp/"></a>
@@ -36,10 +32,15 @@
           </table>
         </form>
       </div>
-    </div>
+    </div> -->
     <div class="d-flex align-items-center">
+      <!-- プロジェクト名表示 -->
+      <span *ngIf="currentProjectName" class="me-3 text-white">
+        現在のページ：{{ currentProjectName }}
+      </span>
+      <!-- ユーザー情報表示 -->
       <ng-container *ngIf="authService.authState$ | async as user">
-        <div class="text-light me-3 dropdown">
+        <div class="text-light me-3 dropdown border border-light rounded px-3 py-1 bg-primary">
           <div class="d-flex align-items-center" style="cursor: pointer;" data-bs-toggle="dropdown" data-bs-auto-close="outside">
             <i class="fa-regular fa-user me-2"></i>
             {{user.displayName}}

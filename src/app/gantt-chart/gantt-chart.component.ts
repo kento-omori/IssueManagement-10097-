@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { gantt } from 'dhtmlx-gantt';
 import { IdManagerService } from '../services/id-manager.service';
 import { TodoFirestoreService } from '../services/todo-firestore.service';
-import { Todo, GanttLink } from '../todo/todo.interface';
+import { Todo } from '../todo/todo.interface';
 import { firstValueFrom, of } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { RouterModule } from '@angular/router';
@@ -110,6 +110,7 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
     gantt.config.date_format = "%Y-%m-%d";
     gantt.config.scale_height = 50;
     gantt.config.min_column_width = 40;
+    gantt.config.autosize = false; // サイズを自動で調整しない（項目の幅のこと）
     gantt.config.scroll_size = 20;
     gantt.config.drag_progress = false;     // 進捗率の編集を無効化（△のバーをドラッグして進捗率を変更できる）
     gantt.config.drag_move = true;          // タスクバーの移動を有効化
@@ -500,5 +501,13 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
   // ngOnInitではinitForm()だけ呼ぶ
   ngOnInit() {
     this.initForm();
+  }
+
+  goDashboad() {
+    this.todoFirestoreService.goDashboad();
+  }
+
+  goTodo() {
+    this.todoFirestoreService.goTodo();
   }
 } 

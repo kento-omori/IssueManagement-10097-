@@ -3,7 +3,7 @@ import { Auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signO
 import { Router } from '@angular/router';
 import { UserService } from './user.service';
 import { NgZone } from '@angular/core';
-import { Observable, of } from 'rxjs';
+import { NavigationService } from './navigation.service';
 @Injectable({
   providedIn: 'root'
 })
@@ -17,9 +17,11 @@ export class AuthService {
     private auth: Auth,
     private router: Router,
     private userService: UserService,
-    private ngZone: NgZone
+    private ngZone: NgZone,
+    private navigationService: NavigationService
   ) {
     this.authState$ = authState(this.auth);
+    console.log('authState$:', this.authState$);
   }
 
   // 現在のユーザーを取得
@@ -37,7 +39,6 @@ export class AuthService {
     try {
       const userCredential = await signInWithEmailAndPassword(this.auth, email, password);
       console.log('Firebase login successful');
-      
       // ユーザープロフィールを取得
       const userProfile = await this.userService.getUserProfile(userCredential.user.uid);
       console.log('User profile loaded');
@@ -45,11 +46,15 @@ export class AuthService {
       // NgZone内でナビゲーションを実行
       return new Promise<void>((resolve, reject) => {
         this.ngZone.run(async () => {
+          console.log('userProfile:', userProfile);
           try {
             console.log('Attempting navigation to /home');
-            const result = await this.router.navigate(['/home']);
-            console.log('Navigation result:', result);
-            if (result) {
+            if (userProfile && userProfile.uid) {
+              await this.router.navigate(['users', userProfile.uid, 'home']);
+              this.navigationService.setSelectedUserId(userProfile.uid); // ログインしたユーザIDを取得し、navigationServiceにセット
+            }
+            console.log('Navigation result:', userProfile);
+            if (userProfile) {
               console.log('Navigation successful');
               resolve();
             } else {

@@ -9,31 +9,33 @@ import {
   deleteDoc,
   query,
   orderBy,
-  Timestamp
 } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 import { Auth } from '@angular/fire/auth';
 import { SpaceData } from '../parent-i-share/parent-i-share.component';
 import { Comment } from '../parent-i-share/parent-i-share.component';
-import { Storage, ref, uploadBytes, getDownloadURL, getMetadata, FullMetadata, deleteObject } from '@angular/fire/storage';
+import { Storage, ref, uploadBytes, getDownloadURL, deleteObject } from '@angular/fire/storage';
 import { v4 as uuidv4 } from 'uuid';
+import { NavigationService } from './navigation.service';
+import { Router } from '@angular/router';
+
 @Injectable({
   providedIn: 'root'
 })
 export class IShareFirestoreService {
-  constructor(private firestore: Firestore, private auth: Auth, private storage: Storage) {}
-
-  // 情報共有スペースのコレクションパス
-  get collectionPath() {
-    const userId = this.auth.currentUser?.uid;
-    if (!userId) throw new Error('ユーザーが認証されていません');
-    return `users/${userId}/ishareSpaces`;
-  }
+  constructor(
+    private firestore: Firestore,
+    private auth: Auth,
+    private storage: Storage,
+    private navigationService: NavigationService,
+    private router: Router
+  ) {}
 
   // 情報共有スペースの取得
   getIShareSpaces(): Observable<SpaceData[]> {
+    const collectionPath = this.getCollectionPath();
     try {
-      const collectionRef = collection(this.firestore, this.collectionPath);
+      const collectionRef = collection(this.firestore, collectionPath);
       const q = query(collectionRef, orderBy('createdAt', 'asc'));
       return collectionData(q, { idField: 'dbid' }) as Observable<SpaceData[]>;
     } catch (error) {
@@ -44,8 +46,9 @@ export class IShareFirestoreService {
 
   // 新しい情報共有スペースの追加
   async addIShareSpace(space: Omit<SpaceData, 'dbid'>) {
+    const collectionPath = this.getCollectionPath();
     try {
-      const collectionRef = collection(this.firestore, this.collectionPath);
+      const collectionRef = collection(this.firestore, collectionPath);
       const docRef = await addDoc(collectionRef, space);
       return docRef.id;
     } catch (error) {
@@ -56,8 +59,9 @@ export class IShareFirestoreService {
 
   // 情報共有スペースの更新
   async updateIShareSpace(spaceId: string, data: Partial<SpaceData>) {
+    const collectionPath = this.getCollectionPath();
     try {
-      const docRef = doc(this.firestore, this.collectionPath, spaceId);
+      const docRef = doc(this.firestore, collectionPath, spaceId);
       await updateDoc(docRef, data);
     } catch (error) {
       console.error('情報共有スペース更新エラー:', error);
@@ -67,8 +71,9 @@ export class IShareFirestoreService {
 
   // 情報共有スペースの削除
   async deleteIShareSpace(spaceId: string) {
+    const collectionPath = this.getCollectionPath();
     try {
-      const docRef = doc(this.firestore, this.collectionPath, spaceId);
+      const docRef = doc(this.firestore, collectionPath, spaceId);
       await deleteDoc(docRef);
     } catch (error) {
       console.error('情報共有スペース削除エラー:', error);
@@ -78,7 +83,8 @@ export class IShareFirestoreService {
 
   // コメントのコレクションパス
   private getCommentsCollectionPath(dbid: string): string {
-    return `${this.collectionPath}/${dbid}/comments`;
+    const collectionPath = this.getCollectionPath();
+    return `${collectionPath}/${dbid}/comments`;
   }
 
   // コメントの追加
@@ -107,21 +113,95 @@ export class IShareFirestoreService {
     const docRef = doc(commentsRef, commentId);
     await updateDoc(docRef, comment);
   }
+
+  getCollectionPath() {
+    const userId = this.navigationService.selectedUserIdSource.getValue();
+    const projectId = this.navigationService.selectedProjectIdSource.getValue();
+    const url = this.router.url;
+
+    let collectionPath: string;
+    if (url.startsWith('/users') && userId) {
+      collectionPath = `users/${userId}/i-share`;
+    } else if (url.startsWith('/projects') && projectId) {
+      collectionPath = `projects/${projectId}/i-share`;
+    } else {
+      throw new Error('userIdかprojectIdのどちらかが必要です');
+    }
+    return collectionPath;
+  };
+
+  goDashboad(): void {
+    const userId = this.navigationService.selectedUserIdSource.getValue();
+    const projectId = this.navigationService.selectedProjectIdSource.getValue();
+    const url = this.router.url;
+    let collectionPath: string;
+    if (url.startsWith('/users') && userId) {
+      collectionPath = `users/${userId}/private`;
+    } else if (url.startsWith('/projects') && projectId) {
+      collectionPath = `projects/${projectId}/project-base`;
+    } else {
+      throw new Error('userIdかprojectIdのどちらかが必要です');
+    }
+    this.router.navigate([collectionPath]);
+  }
+
+  goIShare(spaceId: string): void {
+    const userId = this.navigationService.selectedUserIdSource.getValue();
+    const projectId = this.navigationService.selectedProjectIdSource.getValue();
+    const url = this.router.url;
+    let collectionPath: string;
+    if (url.startsWith('/users') && userId) {
+      collectionPath = `users/${userId}/i-share/${spaceId}`;
+    } else if (url.startsWith('/projects') && projectId) {
+      collectionPath = `projects/${projectId}/i-share/${spaceId}`;
+    } else {
+      throw new Error('userIdかprojectIdのどちらかが必要です');
+    }
+    this.router.navigate([collectionPath]);
+  }
+
+  goParentIShare(): void {
+    const userId = this.navigationService.selectedUserIdSource.getValue();
+    const projectId = this.navigationService.selectedProjectIdSource.getValue();
+    const url = this.router.url;
+    let collectionPath: string;
+    if (url.startsWith('/users') && userId) {
+      collectionPath = `users/${userId}/parent-i-share`;
+    } else if (url.startsWith('/projects') && projectId) {
+      collectionPath = `projects/${projectId}/parent-i-share`;
+    } else {
+      throw new Error('userIdかprojectIdのどちらかが必要です');
+    }
+    this.router.navigate([collectionPath]);
+  }
 }
-
-
 
 @Injectable({ providedIn: 'root' })
 export class FileStorageService {
-  constructor(private storage: Storage, private auth: Auth) {}
+  constructor(
+    private storage: Storage,
+    private auth: Auth,
+    private navigationService: NavigationService,
+    private router: Router
+  ) {}
 
   // ファイル保存先のパス
   getfileStoragePath(fileName: string) {
-    const userId = this.auth.currentUser?.uid;
-    if (!userId) throw new Error('ユーザーが認証されていません');
+    const userId = this.navigationService.selectedUserIdSource.getValue();
+    const projectId = this.navigationService.selectedProjectIdSource.getValue();
+    const url = this.router.url;
+
     // uuidでユニークなIDを生成
     const uniqueId = uuidv4();
-    return `kensyu10097.firebasestorage.app/${userId}/${uniqueId}_${fileName}`;
+    let collectionPath: string;
+    if (url.startsWith('/users') && userId) {
+      collectionPath = `kensyu10097.firebasestorage.app/users/${userId}/${uniqueId}_${fileName}`;
+    } else if (url.startsWith('/projects') && projectId) {
+      collectionPath = `kensyu10097.firebasestorage.app/projects/${projectId}/${uniqueId}_${fileName}`;
+    } else {
+      throw new Error('userIdかprojectIdのどちらかが必要です');
+    }
+    return collectionPath;
   }
 
   // ファイルのアップロード

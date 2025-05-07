@@ -1,6 +1,6 @@
 <div class="container-fluid">
     <div class="row justify-content-end mt-1" >
-      <a class="btn btn-outline-primary col-auto" routerLink="/home">ホームへ戻る</a>
+      <a class="btn btn-outline-primary col-auto" (click)="goHome()">ホームへ戻る</a>
     </div>
 </div>
   
@@ -68,7 +68,7 @@
             <div class="card h-100 shadow-hover w-100">
                 <div class="card-body d-flex flex-column">
                     <h5 class="card-title">
-                    <a [routerLink]="['/dashboard', project.pjid]" class="text-decoration-none stretched-link fw-bold">
+                    <a (click)="goProjectBase(project.pjid!)" class="text-decoration-none stretched-link fw-bold">
                         {{ project.title }}
                     </a>
                     </h5>

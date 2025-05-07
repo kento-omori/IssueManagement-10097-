@@ -1,0 +1,9 @@
+.card:hover {
+    background-color: #A4C6FF;
+}
+a:hover {
+    cursor: pointer;
+}
+.btn:hover {
+    background-color: #A4C6FF;
+}

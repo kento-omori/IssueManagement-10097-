@@ -1,21 +1,22 @@
 import { Component, OnInit } from '@angular/core';
 import { Todo } from '../todo/todo.interface';
 import { TodoFirestoreService } from '../services/todo-firestore.service';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { NavigationService } from '../services/navigation.service';
 
-interface WeekNotification extends Todo {
+export interface WeekNotification extends Todo {
   lastDays?: number;
 }
 
-interface ExpiredNotification extends Todo {
+export interface ExpiredNotification extends Todo {
   expiredDays?: number;
 }
 
 @Component({
   selector: 'app-notification',
   standalone: true,
-  imports: [RouterLink, CommonModule],
+  imports: [ CommonModule],
   templateUrl: './notification.component.html',
   styleUrl: './notification.component.css'
 })
@@ -27,7 +28,11 @@ export class NotificationComponent implements OnInit {
   expiredNotification: ExpiredNotification[] = [];
   lastDays: number = 0;
 
-  constructor(private todoFirestoreService: TodoFirestoreService) {}
+  constructor(
+    private todoFirestoreService: TodoFirestoreService,
+    private navigationService: NavigationService,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
     this.todoFirestoreService.getTodos().subscribe((todos) => {
@@ -83,5 +88,16 @@ export class NotificationComponent implements OnInit {
         expiredDays: expiredDays
       };
     });
+  }
+
+  goTodo() {
+    const userId = this.navigationService.selectedUserIdSource.getValue();
+    const projectId = this.navigationService.selectedProjectIdSource.getValue();
+    const url = this.router.url;
+    if (url.startsWith('/users') && userId) {
+      this.router.navigate([`/users/${userId}/todo`]);
+    } else if (url.startsWith('/projects') && projectId) {
+      this.router.navigate([`/projects/${projectId}/todo`]);
+    }
   }
 }

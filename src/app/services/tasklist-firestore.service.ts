@@ -7,10 +7,8 @@ import {
   addDoc,            // ドキュメント追加 (Create)
   updateDoc,         // ドキュメント更新 (Update)
   deleteDoc,         // ドキュメント削除 (Delete)
-  DocumentReference, // ドキュメント参照の型
-  getDocs,
 } from '@angular/fire/firestore';
-import { Observable, from } from 'rxjs';
+import { Observable } from 'rxjs';
 import { TaskLists } from '../tasklist/tasklist.component';
 import { Auth } from '@angular/fire/auth';
 
@@ -33,7 +31,6 @@ export class TasklistFirestoreService {
 
   // Taskリストの取得
   getTasks(): Observable<TaskLists[]> {
-    console.log(this.collectionPath);
     try {
       const collectionRef = collection(this.firestore, this.collectionPath);
       return collectionData(collectionRef, { idField: 'id' }) as Observable<TaskLists[]>; // idも取得しないと、CRUDするときにエラーが出る（ID取得できていないからコレクションパスがundefinedになる）

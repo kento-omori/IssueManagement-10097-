@@ -1,7 +1,6 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
-import { RouterOutlet, RouterLink } from '@angular/router';
 import { IShareFirestoreService } from '../services/ishare-firestore.service';
 import { Timestamp } from '@angular/fire/firestore';
 
@@ -26,7 +25,7 @@ export interface Comment { //commentsの型
 @Component({
   selector: 'app-parent-i-share',
   standalone: true,
-  imports: [ CommonModule, RouterLink,  FormsModule],
+  imports: [ CommonModule, FormsModule],
   templateUrl: './parent-i-share.component.html',
   styleUrl: './parent-i-share.component.css'
 })
@@ -64,4 +63,12 @@ export class ParentIShareComponent implements OnInit {
     this.ishareFirestoreService.deleteIShareSpace(spaceId);
   }
 
+  goDashboad(): void {
+    this.ishareFirestoreService.goDashboad();
+  }
+
+  goIShare(spaceId: string): void {
+    console.log(spaceId);
+    this.ishareFirestoreService.goIShare(spaceId);
+  }
 }
