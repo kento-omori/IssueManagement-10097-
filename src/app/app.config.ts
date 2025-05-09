@@ -7,6 +7,7 @@ import { provideFirestore, getFirestore, connectFirestoreEmulator } from '@angul
 import { provideStorage, getStorage, connectStorageEmulator } from '@angular/fire/storage';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { provideMessaging, getMessaging } from '@angular/fire/messaging';
+import { provideFunctions, getFunctions, connectFunctionsEmulator } from '@angular/fire/functions';
 // import { provideAnalytics, getAnalytics } from '@angular/fire/analytics';
 // import { ScreenTrackingService, UserTrackingService } from '@angular/fire/analytics';
 
@@ -32,6 +33,7 @@ export const appConfig: ApplicationConfig = {
         const auth = getAuth(app);
         const db = getFirestore(app);
         const storage = getStorage(app);
+        const functions = getFunctions(app, 'asia-northeast1');
         
         // Firestoreエミュレーターの接続
         connectFirestoreEmulator(db, 'localhost', 8080);
@@ -39,6 +41,8 @@ export const appConfig: ApplicationConfig = {
         connectAuthEmulator(auth, 'http://localhost:9099');
         // Storageエミュレーターの接続
         connectStorageEmulator(storage, "localhost", 9199);
+        // Functionsエミュレーターの接続
+        connectFunctionsEmulator(functions, 'localhost', 5001);
       }
       return app;
     }),
@@ -47,6 +51,7 @@ export const appConfig: ApplicationConfig = {
     provideStorage(() => getStorage()),
     provideCharts(withDefaultRegisterables()),
     provideMessaging(() => getMessaging()),
+    provideFunctions(() => getFunctions()),
     // provideAnalytics(() => getAnalytics()),
     // ScreenTrackingService,
     // UserTrackingService,
