@@ -346,9 +346,9 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
         
         // yyyy-mm-dd形式に戻す
         const formatDate = (date: Date) => {
-          const yyyy = date.getFullYear();
-          const mm = ('0' + (date.getMonth() + 1)).slice(-2);
-          const dd = ('0' + date.getDate()).slice(-2);
+        const yyyy = date.getFullYear();
+        const mm = ('0' + (date.getMonth() + 1)).slice(-2);
+        const dd = ('0' + date.getDate()).slice(-2);
           return `${yyyy}-${mm}-${dd}`;
         };
 
@@ -358,10 +358,10 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
           end_date: formatDate(endDate),
           // リンクデータの型を確実に文字列に変換
           links: task.links?.map(link => ({
-            id: String(link.id),
-            source: String(link.source),
-            target: String(link.target),
-            type: String(link.type)
+          id: String(link.id),
+          source: String(link.source),
+          target: String(link.target),
+          type: String(link.type)
           })) || []
         };
       }).filter(task => task !== null); // 無効な日付のタスクを除外

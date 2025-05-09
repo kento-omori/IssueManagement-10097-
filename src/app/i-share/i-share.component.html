@@ -7,7 +7,7 @@
     <div class="col-4 text-end">
       <button class="btn btn-outline-primary btn-lg px-4 fw-bold shadow-sm"
        (click)="goParentIShare()">
-       このスペースを閉じる<i class="fa fa-sign-out-alt ms-2"></i>
+       <i class="fa fa-sign-out-alt me-2"></i>このスペースを閉じる
       </button>
     </div>
     <div class="col-12">
@@ -17,84 +17,97 @@
 </div>
 <hr>
 
-<!-- コメントリスト表示 -->
-<div class="container-fluid" style="padding-top: 10px; padding-bottom: 15em; overflow-y: auto;">
-  <div class="row" *ngFor="let comment of comments; let i = index">
-    <div class="col-12">
-      <div class="card my-2">
-        <div class="card-header d-flex align-items-center">
+<!-- メインコンテンツエリア -->
+<div class="d-flex flex-column" style="height: calc(100vh - 200px);">
+  <!-- コメントリスト（スクロール可能） -->
+  <div class="flex-grow-1 overflow-auto">
+    <div *ngFor="let comment of comments; let i = index" class="card mb-2" [ngClass]="{'bg-light text-muted': comment.isDeleted}">
+      <div class="card-body p-2">
+        <div class="d-flex align-items-center mb-1">
           <span class="badge bg-primary me-2">{{ i + 1 }}</span>
-          <strong>{{ comment.user }}</strong>
-          <span class="text-muted ms-2">{{ comment.date | date:'yyyy/MM/dd HH:mm' }}</span>
-          <div class="ms-auto">
-            <button class="btn btn-sm btn-warning me-2" (click)="onEditComment(comment)">編集</button>
-            <button class="btn btn-sm btn-danger" (click)="onDeleteComment(comment)">削除</button>
+          <span class="fw-bold"><i class="fa fa-user me-1"></i>{{ comment.user }}</span>
+          <span class="ms-2 small text-secondary"><i class="fa fa-clock me-1"></i>{{ comment.date | date:'yyyy/MM/dd HH:mm' }}</span>
+          <span *ngIf="comment.edited" class="ms-2 small text-secondary">
+            <i class="fa fa-pencil-alt me-1"></i>{{ comment.editedBy }}が編集済み：{{ comment.editedAt | date:'yyyy/MM/dd HH:mm' }}
+          </span>
+          <div class="ms-auto" *ngIf="!comment.isDeleted">
+            <button class="btn btn-sm btn-outline-primary me-2" (click)="onEditComment(comment)">
+              <i class="fa fa-edit"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger" (click)="onDeleteComment(comment)" [disabled]="editingCommentId" *ngIf="comment.user === userName">
+              <i class="fa fa-trash"></i>
+            </button>
           </div>
         </div>
-        <div class="card-body">
-          <div style="white-space: pre-wrap;">{{ comment.text }}</div>
-          <div *ngIf="comment.fileName">
-            <i class="fa fa-paperclip"></i>
-            <span *ngIf="comment.fileUrl; else noLink">
-              <a *ngIf="comment.fileUrl" [href]="comment.fileUrl" target="_blank">
-                {{ comment.fileName }} をダウンロード
-              </a>
-            </span>
-            <ng-template #noLink>
-              {{ comment.fileName }}
-            </ng-template>
+        <div *ngIf="!comment.isDeleted">
+          <div *ngIf="editingCommentId !== comment.id">
+            <span style="white-space: pre-line;">{{ comment.text }}</span>
+            <div *ngIf="comment.fileName" class="mt-2">
+              <i class="fa fa-paperclip me-2"></i>
+              <a [href]="comment.fileUrl" target="_blank">{{ comment.fileName }}</a>
+            </div>
           </div>
+          <div *ngIf="editingCommentId === comment.id" class="mt-2">
+            <span class="text-primary">編集中（下のフォームで編集してください）</span>
+          </div>
+        </div>
+        <div *ngIf="comment.isDeleted" class="fst-italic">
+          <i class="fa fa-trash"></i> {{ comment.deletedBy }} により削除されました
         </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- 入力エリアを画面下部に固定 -->
-<div 
-  class="container-fluid"
-  style="position: fixed; bottom: 0; left: 0; width: 100%; background: #fff; z-index: 9999; box-shadow: 0 -2px 8px rgba(0,0,0,0.05);
-         padding-top: 0.5rem; padding-bottom: 0.5rem;">
-  <div class="row align-items-center">
-    <div class="col-8">
-      <textarea class="form-control" placeholder="コメントを入力してください" 
-        rows="2" style="resize: vertical; min-height: 10em; max-height: 10em;"
-        [(ngModel)]="commentText"></textarea>
-    </div>
-    <div class="col-2 text-center" style="position: relative;">
-      <label 
-        class="btn btn-secondary w-100 mb-0"
-        (mouseenter)="showPopover = true"
-        (mouseleave)="showPopover = false"
-        [title]="fileName || 'ファイルを選択してください'" 
-        style="position: relative;"
-      >
-        <i class="fa fa-paperclip"></i> ファイル添付
-        <input 
-          type="file" 
-          style="display: none;" 
-          (change)="onFileSelected($event)"
-        >
-      </label>
-      <!-- ポップアップ（ファイル選択時のみ表示） -->
-      <div 
-        *ngIf="showPopover && fileName"
-        class="popover bs-popover-top show"
-        style="position: absolute; left: 50%; transform: translateX(-50%); bottom: 110%; z-index: 1000; min-width: 180px;"
-        (mouseenter)="showPopover = true"
-        (mouseleave)="showPopover = false"
-      >
-        <div class="popover-arrow" style="left: 50%;"></div>
-        <div class="popover-body text-center">
-          <div>{{ fileName }}</div>
-          <button class="btn btn-danger btn-sm mt-2" (click)="onFileRemove()">削除</button>
+  <!-- 入力フォーム（下部固定） -->
+  <div class="bg-white p-3 border-top shadow-sm">
+    <div class="container-fluid">
+      <div class="row align-items-start">
+        <div class="col-10 pe-0">
+          <div class="input-group flex-column">
+            <textarea class="form-control w-100" [(ngModel)]="commentText" placeholder="コメントを入力" maxlength="1000"
+              rows="3" style="resize: vertical; min-height: 5em; max-height: 10em;"></textarea>
+            <div class="d-flex justify-content-between align-items-center mt-1">
+              <div *ngIf="fileName" class="d-flex align-items-center">
+                <span class="me-2"><i class="fa fa-file"></i> {{ fileName }}</span>
+                <button class="btn btn-sm btn-outline-danger ms-2" (click)="onFileRemove()"><i class="fa fa-times"></i> ファイル削除</button>
+              </div>
+              <div class="text-end">
+                <span [ngClass]="{'text-danger': commentText.length > 1000}">
+                  {{ commentText.length }}/1000文字
+                </span>
+                <div *ngIf="commentText.length > 1000" class="text-danger small">
+                  文字数が制限を超えています
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-2 ps-0" style="height: 5em;">
+          <div class="d-flex align-items-start" style="height: 5em;">
+            <label class="btn btn-outline-secondary mb-0 me-2 d-flex align-items-center justify-content-center"
+                   style="height: 5em; width: 48%;">
+              <input type="file" (change)="onFileSelected($event)" hidden>
+              <i class="fa fa-paperclip"></i>
+            </label>
+            <ng-container *ngIf="editingCommentId; else sendButton">
+              <button class="btn btn-primary d-flex align-items-center justify-content-center"
+                      style="height: 5em; width: 48%;" (click)="onSaveEdit()" [disabled]="!commentText.trim() && !fileData">
+                <i class="fa fa-paper-plane"></i> 更新
+              </button>
+              <button class="btn btn-secondary d-flex align-items-center justify-content-center ms-2"
+                      style="height: 5em; width: 48%;" (click)="onCancelEdit()">
+                キャンセル
+              </button>
+            </ng-container>
+            <ng-template #sendButton>
+              <button class="btn btn-primary d-flex align-items-center justify-content-center"
+                      style="height: 5em; width: 48%;" (click)="onSend()" [disabled]="!commentText.trim() && !fileData">
+                <i class="fa fa-paper-plane"></i> 送信
+              </button>
+            </ng-template>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="col-1 text-center">
-      <button class="btn btn-primary w-100" style="height: 100%;" (click)="onSend()">
-        <i class="fa fa-paper-plane"></i>
-      </button>
     </div>
   </div>
 </div>

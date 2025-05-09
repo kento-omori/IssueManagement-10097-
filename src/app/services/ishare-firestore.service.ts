@@ -102,7 +102,11 @@ export class IShareFirestoreService {
     return collectionData(q, { idField: 'id' }).pipe(
       map(comments => comments.map(comment => ({
         ...comment,
-        date: comment['date'] instanceof Date ? comment['date'] : new Date(comment['date'].seconds * 1000)
+        date: comment['date'] instanceof Date ? comment['date'] : new Date(comment['date'].seconds * 1000),
+        editedAt: comment['editedAt'] ? 
+          (comment['editedAt'] instanceof Date ? 
+            comment['editedAt'] : new Date(comment['editedAt'].seconds * 1000)) : 
+          null
       })))
     ) as Observable<Comment[]>;
   }
@@ -119,6 +123,18 @@ export class IShareFirestoreService {
     const commentsRef = collection(this.firestore, this.getCommentsCollectionPath(spaceId));
     const docRef = doc(commentsRef, commentId);
     await updateDoc(docRef, comment);
+  }
+
+  // コメントの編集
+  async editComment(spaceId: string, commentId: string, text: string, editedBy: string) {
+    const commentsRef = collection(this.firestore, this.getCommentsCollectionPath(spaceId));
+    const docRef = doc(commentsRef, commentId);
+    await updateDoc(docRef, {
+      text: text,
+      edited: true,
+      editedBy: editedBy,
+      editedAt: new Date()
+    });
   }
 
   getCollectionPath() {
@@ -202,9 +218,9 @@ export class FileStorageService {
     const uniqueId = uuidv4();
     let collectionPath: string;
     if (url.startsWith('/users') && userId) {
-      collectionPath = `kensyu10097.firebasestorage.app/users/${userId}/${uniqueId}_${fileName}`;
+      collectionPath = `users/${userId}/i-share/${uniqueId}_${fileName}`; //kensyu10097.firebasestorage.app/を一時的に取っている
     } else if (url.startsWith('/projects') && projectId) {
-      collectionPath = `kensyu10097.firebasestorage.app/projects/${projectId}/ishare/${uniqueId}_${fileName}`;
+      collectionPath = `projects/${projectId}/i-share/${uniqueId}_${fileName}`; //kensyu10097.firebasestorage.app/を一時的に取っている
     } else {
       throw new Error('userIdかprojectIdのどちらかが必要です');
     }

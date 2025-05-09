@@ -1,42 +1,28 @@
 rules_version = '2';
 service firebase.storage {
-  match /b/{bucket}/o {
-    
-    // --- ヘルパー関数 ---
-    function isUserAuthenticated(userId) {
-      return request.auth != null && userId == request.auth.uid;
+  match /b/{bucket}/o { //{bucket}が、kensyu10097~.appにあたる部分。/oは飾り文字的なもので、意味はないが必要
+
+    // ユーザーのi-shareファイル（自分だけアクセス可）
+    match /users/{userId}/i-share/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // プロジェクトメンバーかどうかをチェックする関数
-    function isProjectMember(projectId) {
-      let project = get(/databases/$(database)/documents/projects/$(projectId));
-      let isMember = request.auth != null && 
-                    project != null && 
-                    project.data.projectMembers is list && 
-                    request.auth.uid in project.data.projectMembers;
-      
-      // デバッグ情報
-      return isMember;
+    // プロジェクトのi-shareファイル
+    // 認証ユーザーならOK →　Storageルールだけで「プロジェクトメンバーのみ」は不可能→firestore rulesが参照できないから
+    // get等の関数は使えないから。Storageルールでできるのは「認証情報」「パスの一致」などのみ。
+    //　アプリ側で制御
+    match /projects/{projectId}/i-share/{allPaths=**} {
+      allow read, write: if request.auth != null;
     }
 
     // プロジェクトのチャットファイル
     match /projects/{projectId}/chating/{allPaths=**} {
-      allow read, write: if request.auth != null && isProjectMember(projectId);
-    }
-
-    // プロジェクトのi-shareファイル
-    match /projects/{projectId}/i-share/{allPaths=**} {
-      allow read, write: if request.auth != null //&& isProjectMember(projectId);
-    }
-
-    // ユーザーのi-shareファイル
-    match /users/{userId}/i-share/{allPaths=**} {
-      allow read, write: if isUserAuthenticated(userId);
+      allow read, write: if request.auth != null;
     }
 
     // デフォルトルール：すべてのアクセスを拒否
-    //match /{allPaths=**} {
-      //allow read, write: if false;
-    //}
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
   }
 } 

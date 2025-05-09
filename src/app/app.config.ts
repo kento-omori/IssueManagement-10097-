@@ -6,6 +6,7 @@ import { provideAuth, getAuth, connectAuthEmulator } from '@angular/fire/auth';
 import { provideFirestore, getFirestore, connectFirestoreEmulator } from '@angular/fire/firestore';
 import { provideStorage, getStorage, connectStorageEmulator } from '@angular/fire/storage';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
+import { provideMessaging, getMessaging } from '@angular/fire/messaging';
 // import { provideAnalytics, getAnalytics } from '@angular/fire/analytics';
 // import { ScreenTrackingService, UserTrackingService } from '@angular/fire/analytics';
 
@@ -45,6 +46,7 @@ export const appConfig: ApplicationConfig = {
     provideFirestore(() => getFirestore()),
     provideStorage(() => getStorage()),
     provideCharts(withDefaultRegisterables()),
+    provideMessaging(() => getMessaging()),
     // provideAnalytics(() => getAnalytics()),
     // ScreenTrackingService,
     // UserTrackingService,

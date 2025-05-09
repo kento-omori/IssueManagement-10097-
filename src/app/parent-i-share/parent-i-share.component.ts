@@ -14,12 +14,17 @@ export interface SpaceData {
 }
 
 export interface Comment { //commentsの型
+  id: string;
+  text: string;
   user: string;
   date: Date;
-  text: string;
-  fileName?: string | null;
-  fileData?: File | null;
-  fileUrl?: string | null;
+  fileName: string | null;
+  fileUrl: string | null;
+  isDeleted: boolean;
+  deletedBy: string | null;
+  edited: boolean;
+  editedBy: string | null;
+  editedAt: Date | null;
 }
 
 @Component({

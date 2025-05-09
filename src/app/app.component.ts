@@ -7,11 +7,14 @@ import { Router, NavigationEnd, ActivatedRoute } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { ProjectFirestoreService } from './services/project-firestore.service';
 import { firstValueFrom } from 'rxjs';
+import { MessagingService } from './services/messaging.service';
+import { NotificationData } from './services/messaging.service';
+import { NotificationListComponent } from './notification-list/notification-list.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet],
+  imports: [CommonModule, RouterOutlet, NotificationListComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
@@ -19,13 +22,19 @@ import { firstValueFrom } from 'rxjs';
 export class AppComponent {
   title = 'issuemanagement';
   currentProjectName: string = '';
+  notifications: NotificationData[] = [];
+  unreadCount = 0;
+  showNotificationPopup = false;
+  showBanner = false;
+  bannerNotification: NotificationData | null = null;
   
   constructor(
     public authService: AuthService,
     public navigationService: NavigationService,
     private router: Router,
     private route: ActivatedRoute,
-    private projectFirestoreService: ProjectFirestoreService
+    private projectFirestoreService: ProjectFirestoreService,
+    private messagingService: MessagingService
   ) {
     // ルーティングやサービスの状態に応じてプロジェクト名をセット
     this.setCurrentProjectName();
@@ -91,6 +100,20 @@ export class AppComponent {
       // プロジェクト名や個人ワークスペース名を即座に反映
       this.setCurrentProjectName();
     });
+
+    this.messagingService.notifications$.subscribe(list => {
+      this.notifications = list;
+      this.unreadCount = list.filter(n => !n.read).length;
+      // 新着通知があればバナー表示
+      if (list.length > 0 && !list[0].read) {
+        this.showBanner = true;
+        this.bannerNotification = list[0];
+        setTimeout(() => {
+          this.showBanner = false;
+          this.bannerNotification = null;
+        }, 3000);
+      }
+    });
   }
 
   goHome() {
@@ -111,5 +134,14 @@ export class AppComponent {
 
   goProjectHome() {
     this.router.navigate(['projects']);
+  }
+
+  toggleNotificationPopup() {
+    this.showNotificationPopup = !this.showNotificationPopup;
+  }
+
+  onMarkAllAsRead() {
+    this.messagingService.markAllAsRead();
+    this.showNotificationPopup = false;
   }
 }

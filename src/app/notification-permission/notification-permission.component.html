@@ -1,0 +1,11 @@
+<div *ngIf="!permissionGranted && !permissionRequested">
+  <button class="btn btn-primary" (click)="requestPermission()">
+    通知を許可する
+  </button>
+</div>
+<div *ngIf="permissionRequested && permissionGranted" class="text-success">
+  通知が許可されました。
+</div>
+<div *ngIf="permissionRequested && !permissionGranted" class="text-danger">
+  通知が許可されませんでした。
+</div>

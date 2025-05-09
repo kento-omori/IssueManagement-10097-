@@ -214,10 +214,11 @@ export class TodoComponent implements OnInit, OnDestroy {
         ? Math.max(...this.todos.map(todo => todo.order ?? 0))
         : 0;
 
+      const isCompleted = (this.todoForm.getRawValue().status === '完了');
+
       const formValue = {
         ...this.todoForm.getRawValue(),
         id: this.editingTodo ? this.editingTodo.id : this.getNextAvailableId(),
-        // completed: false,
         progress: 0,
         customFields: this.customFields.map(field => ({
           ...field,
@@ -225,7 +226,8 @@ export class TodoComponent implements OnInit, OnDestroy {
         })),
         comments: [],
         order: this.editingTodo ? this.editingTodo.order : maxOrder + 1,
-        links: []
+        links: [],
+        completed: isCompleted
       };
 
       // 既存のTodoを更新  
@@ -243,6 +245,7 @@ export class TodoComponent implements OnInit, OnDestroy {
       // 新しいTodoを追加
       } else {
         this.todos.push(formValue);
+        console.log('追加直後のtodos:', this.todos);
         this.todoFirestoreService.addTodo(formValue);
         // 新しいIDを使用したことをIDManagerServiceに通知
         this.idManagerService.setCurrentId(formValue.id);
@@ -263,6 +266,7 @@ export class TodoComponent implements OnInit, OnDestroy {
       this.todoForm.get('id')?.disable();
       // データ更新後にフィルタリングを適用
       this.applyFilters();
+      console.log('filteredTodos:', this.filteredTodos);
     }
   }
 

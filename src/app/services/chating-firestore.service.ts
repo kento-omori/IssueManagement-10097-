@@ -168,7 +168,7 @@ export class FileStorageService {
     const uniqueId = uuidv4();
     let collectionPath: string;
     if (url.startsWith('/projects') && projectId) {
-      collectionPath = `kensyu10097.firebasestorage.app/projects/${projectId}/chating/${uniqueId}_${fileName}`;
+      collectionPath = `projects/${projectId}/chating/${uniqueId}_${fileName}`; //kensyu10097.firebasestorage.app/を一時的に取っている
     } else {
       throw new Error('projectIdが必要です');
     }

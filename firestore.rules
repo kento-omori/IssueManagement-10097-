@@ -16,6 +16,24 @@ service cloud.firestore {
              request.auth.uid in project.data.projectMembers;
     }
 
+    // 管理者権限を持つかどうか
+    function isAdmin(projectId) {
+      let project = get(/databases/$(database)/documents/projects/$(projectId));
+      return request.auth != null &&
+             project != null &&
+             project.data.admin is list &&
+             request.auth.uid in project.data.admin;
+    }
+
+    // オーナー権限を持つかどうか
+    function isOwner(projectId) {
+      let project = get(/databases/$(database)/documents/projects/$(projectId));
+      return request.auth != null &&
+             project != null &&
+             project.data.owner is list &&
+             request.auth.uid in project.data.owner;
+    }
+
     // 個人ワークスペース
     match /users/{userId}/{collectionId=**} {
       allow read, write: if isUserAuthenticated(userId);
@@ -26,13 +44,28 @@ service cloud.firestore {
       allow read: if request.auth != null;
     }
 
-    // プロジェクトコレクション
+
+    // プロジェクトコレクション　→　そのフィールド(配列)に、projectMember,admin,ownerが存在
+    // 共有プロジェクトは誰でもつくれる
     match /projects/{projectId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow read,create: if request.auth != null;
+      
+      // admin/ownerフィールドの変更はadmin/ownerのみ
+      allow update: if (
+        (request.resource.data.admin != resource.data.admin && isAdmin(projectId)) ||
+        (request.resource.data.owner != resource.data.owner && isOwner(projectId)) ||
+        (
+          request.resource.data.admin == resource.data.admin &&
+          request.resource.data.owner == resource.data.owner &&
+          request.auth != null
+        )
+      );
+
+      // 削除はownerのみ許可
+      allow delete: if isOwner(projectId);
     }
 
-    // プロジェクト配下（共有スペース）
+    // プロジェクト配下（共有スペース）read(データ読み込み)、create(task追加)、delete(task削除)、update(task編集)必要→write
     match /projects/{projectId}/{collectionId=**} {
       allow read, write: if isProjectMember(projectId);
     }
