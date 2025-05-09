@@ -71,3 +71,8 @@
 .event-tooltip button:last-child {
   background-color: #dc3545;
 }
+
+/* full-calendarのイベントにホバーしたときカーソルをpointerに */
+::ng-deep .fc-event:hover {
+  cursor: pointer;
+}

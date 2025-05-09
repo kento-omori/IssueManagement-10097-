@@ -54,6 +54,7 @@ export class ProjectHomeComponent implements OnInit, OnDestroy {
         });
       }
     });
+    console.log(this.projects);
   };
 
   ngOnDestroy(): void {
@@ -87,6 +88,7 @@ export class ProjectHomeComponent implements OnInit, OnDestroy {
 
   goProjectBase(projectId: string) {
     this.navigationService.setSelectedProjectId(projectId);
+    console.log(projectId);
     this.router.navigate(['projects', projectId, 'project-base']);
   }
 }

@@ -18,6 +18,7 @@ import { Storage, ref, uploadBytes, getDownloadURL, deleteObject } from '@angula
 import { v4 as uuidv4 } from 'uuid';
 import { NavigationService } from './navigation.service';
 import { Router } from '@angular/router';
+import { map } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -37,6 +38,7 @@ export class IShareFirestoreService {
     try {
       const collectionRef = collection(this.firestore, collectionPath);
       const q = query(collectionRef, orderBy('createdAt', 'asc'));
+      console.log('Query for spaces:', q);
       return collectionData(q, { idField: 'dbid' }) as Observable<SpaceData[]>;
     } catch (error) {
       console.error('情報共有スペース取得エラー:', error);
@@ -96,8 +98,13 @@ export class IShareFirestoreService {
   // コメントの取得
   getComments(spaceId: string):Observable<Comment[]> {
     const commentsRef = collection(this.firestore, this.getCommentsCollectionPath(spaceId));
-    const q = query(commentsRef, orderBy('date', 'desc'));
-    return collectionData(q, { idField: 'id' }) as Observable<Comment[]>;
+    const q = query(commentsRef, orderBy('date', 'asc'));
+    return collectionData(q, { idField: 'id' }).pipe(
+      map(comments => comments.map(comment => ({
+        ...comment,
+        date: comment['date'] instanceof Date ? comment['date'] : new Date(comment['date'].seconds * 1000)
+      })))
+    ) as Observable<Comment[]>;
   }
 
   // コメントの削除
@@ -197,7 +204,7 @@ export class FileStorageService {
     if (url.startsWith('/users') && userId) {
       collectionPath = `kensyu10097.firebasestorage.app/users/${userId}/${uniqueId}_${fileName}`;
     } else if (url.startsWith('/projects') && projectId) {
-      collectionPath = `kensyu10097.firebasestorage.app/projects/${projectId}/${uniqueId}_${fileName}`;
+      collectionPath = `kensyu10097.firebasestorage.app/projects/${projectId}/ishare/${uniqueId}_${fileName}`;
     } else {
       throw new Error('userIdかprojectIdのどちらかが必要です');
     }

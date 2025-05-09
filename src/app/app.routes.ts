@@ -6,6 +6,7 @@ import { TasklistComponent } from './tasklist/tasklist.component';
 import { PrivateComponent } from './private/private.component';
 import { HomeComponent } from './home/home.component';
 import { authGuard } from './guards/auth.guard';
+import { projectIdGuard } from './guards/route.guard';
 import { GanttChartComponent } from './gantt-chart/gantt-chart.component';
 import { VerifyEmailComponent } from './components/verify-email/verify-email.component';
 import { ParentIShareComponent } from './parent-i-share/parent-i-share.component';
@@ -15,6 +16,7 @@ import { NotificationComponent } from './notification/notification.component';
 import { ProjectHomeComponent } from './project-home/project-home.component';
 import { ProjectBaseComponent } from './project-base/project-base.component';
 import { MemberComponent } from './member/member.component';
+import { ChatingComponent } from './chating/chating.component';
 
 export const routes: Routes = [
   // ログイン画面
@@ -37,15 +39,15 @@ export const routes: Routes = [
 
   // プロジェクト（共有ワークスペース）
   { path: 'projects', component: ProjectHomeComponent, canActivate: [authGuard] },
-  { path: 'projects/:projectId/project-base', component: ProjectBaseComponent, canActivate: [authGuard] },
-  { path: 'projects/:projectId/member', component: MemberComponent, canActivate: [authGuard] },
-  { path: 'projects/:projectId/dashboad', component: DashboadComponent, canActivate: [authGuard] },
-  { path: 'projects/:projectId/notification', component: NotificationComponent, canActivate: [authGuard] },
-  { path: 'projects/:projectId/todo', component: TodoComponent, canActivate: [authGuard] },
-  { path: 'projects/:projectId/gantt-chart', component: GanttChartComponent, canActivate: [authGuard] },
-  { path: 'projects/:projectId/parent-i-share', component: ParentIShareComponent, canActivate: [authGuard] },
-  { path: 'projects/:projectId/i-share/:dbid', component: IShareComponent, canActivate: [authGuard] },
-
+  { path: 'projects/:projectId/project-base', component: ProjectBaseComponent, canActivate: [authGuard,projectIdGuard] },
+  { path: 'projects/:projectId/member', component: MemberComponent, canActivate: [authGuard,projectIdGuard] },
+  { path: 'projects/:projectId/dashboad', component: DashboadComponent, canActivate: [authGuard,projectIdGuard] },
+  { path: 'projects/:projectId/notification', component: NotificationComponent, canActivate: [authGuard,projectIdGuard] },
+  { path: 'projects/:projectId/todo', component: TodoComponent, canActivate: [authGuard,projectIdGuard] },
+  { path: 'projects/:projectId/gantt-chart', component: GanttChartComponent, canActivate: [authGuard,projectIdGuard] },
+  { path: 'projects/:projectId/parent-i-share', component: ParentIShareComponent, canActivate: [authGuard,projectIdGuard] },
+  { path: 'projects/:projectId/i-share/:dbid', component: IShareComponent, canActivate: [authGuard,projectIdGuard] },
+  { path: 'projects/:projectId/chat', component: ChatingComponent, canActivate: [authGuard,projectIdGuard] },
   // 不明な場合
   { path: '**', redirectTo: '/login' },
 ];

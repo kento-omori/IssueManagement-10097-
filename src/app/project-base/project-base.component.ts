@@ -1,15 +1,14 @@
 import { Component, OnInit } from '@angular/core';
-import { RouterLink, RouterLinkActive, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import { DashboadComponent } from '../dashboad/dashboad.component';
 import { NotificationComponent } from '../notification/notification.component';
-import { MemberComponent } from "../member/member.component";
 import { ProjectFirestoreService } from '../services/project-firestore.service';
 import { ProjectData } from '../project-home/project-home.component';
 
 @Component({
   selector: 'app-project-base',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, DashboadComponent, NotificationComponent, MemberComponent],
+  imports: [ DashboadComponent, NotificationComponent],
   templateUrl: './project-base.component.html',
   styleUrl: './project-base.component.css'
 })
@@ -37,9 +36,9 @@ export class ProjectBaseComponent implements OnInit {
     this.projectFirestoreService.goParentIShare();
   }
 
-  // goChat(): void {
-  //   this.projectFirestoreService.goChat();
-  // }
+  goChat(): void {
+    this.projectFirestoreService.goChat();
+  }
 
   goMember(): void {
     this.projectFirestoreService.goMember();

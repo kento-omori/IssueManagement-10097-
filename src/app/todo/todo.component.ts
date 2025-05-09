@@ -121,10 +121,25 @@ export class TodoComponent implements OnInit, OnDestroy {
       if (todos.length > 0) {
         const maxId = Math.max(...todos.map(todo => todo.id));
         this.idManagerService.setCurrentId(maxId);
+
+        // カスタムフィールドの情報を取得
+        const firstTodo = todos[0];
+        if (firstTodo.customFields && firstTodo.customFields.length > 0) {
+          this.customFields = firstTodo.customFields;
+          // フィルターにカスタムフィールドを追加
+          this.customFields.forEach(field => {
+            this.filters[`custom_${field.id}`] = '';
+            this.filters[`custom_${field.id}_sort`] = 'none';
+          });
+        }
       }
 
       // Todoデータを取得した後にフォームを初期化
       this.initializeForm();
+      // カスタムフィールドのフォームコントロールを追加
+      this.customFields.forEach(field => {
+        this.todoForm.addControl(`custom_${field.id}`, new FormControl(''));
+      });
     });
   }
 

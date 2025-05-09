@@ -1,0 +1,124 @@
+  <div class="container-fluid">
+    <div class="row justify-content-end mt-1" >
+      <a class="btn btn-outline-primary col-auto" (click)="goDashboad()">ダッシュボード</a>
+      <a class="btn btn-outline-primary col-auto" (click)="goGanttChart()">ガントチャート</a>
+      <a class="btn btn-outline-primary col-auto" (click)="goTodo()">TO DO リスト</a>
+    </div>
+  </div>
+
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-12">
+        <h2>{{ projectName }} のチャットルーム</h2>
+      </div>
+    </div>
+
+    <!-- メッセージリスト -->
+    <div class="chat-messages mb-5" #messageContainer>
+      <div *ngFor="let message of messages" class="message-container" [ngClass]="{'deleted-message': message.isDeleted}">
+        <div class="message-header">
+          <span class="user-icon" [style.background-color]="message.isDeleted ? '#6c757d' : message.userColor">
+            {{ message.userName[0] }}
+          </span>
+          <span class="user-name">{{ message.userName }}</span>
+          <span class="message-time">
+            {{ message.createdAt | date:'yyyy/MM/dd HH:mm' }}
+            <span *ngIf="message.editedAt" class="edit-info">
+              <i class="fa fa-pencil"></i>
+              {{ message.editedAt | date:'yyyy/MM/dd HH:mm（編集済み）' }}
+            </span>
+          </span>
+          <div class="message-actions" *ngIf="!message.isDeleted && message.userId === currentUserId">
+            <button class="btn btn-sm btn-warning" (click)="startEdit(message)" *ngIf="!isEditing(message)">編集</button>
+            <button class="btn btn-sm btn-danger" (click)="deleteMessage(message)" *ngIf="!isEditing(message)">削除</button>
+          </div>
+        </div>
+        <div class="message-content" *ngIf="!message.isDeleted">
+          <div class="message-text">{{ message.text }}</div>
+          <div *ngIf="message.fileUrl && message.fileName && message.fileUrl !== '' && message.fileName !== ''" class="message-file">
+            <a [href]="message.fileUrl" target="_blank" class="file-link">
+              <i class="fa fa-file me-2"></i>
+              {{ message.fileName }}
+            </a>
+          </div>
+        </div>
+        <div class="message-deleted" *ngIf="message.isDeleted">
+          {{ message.deletedBy }}さんによってメッセージが削除されました
+        </div>
+      </div>
+    </div>
+
+    <!-- メッセージ入力エリア -->
+    <div class="message-input">
+      <div class="input-group">
+        <textarea
+          class="form-control"
+          [(ngModel)]="messageText"
+          placeholder="メッセージを入力..."
+          maxlength="200"
+          rows="2"
+          style="resize: vertical; min-height: 2.5em; max-height: 5em;"
+        ></textarea>
+        <div class="input-group-append">
+          <div class="btn-group">
+            <input type="file" #fileInput (change)="onFileSelected($event)" style="display: none">
+            <button class="btn btn-outline-secondary" type="button" (click)="fileInput.click()">
+              <i class="fa fa-paperclip"></i>
+            </button>
+            <button
+              class="btn btn-primary"
+              type="button"
+              *ngIf="editingMessageId"
+              (click)="editMessage()"
+              [disabled]="!messageText.trim() || messageText.length > 200"
+            >
+              <i class="fa fa-paper-plane"></i> 更新
+            </button>
+            <button
+              class="btn btn-secondary"
+              type="button"
+              *ngIf="editingMessageId"
+              (click)="cancelEdit()"
+            >
+              キャンセル
+            </button>
+            <button
+              class="btn btn-primary"
+              type="button"
+              *ngIf="!editingMessageId"
+              (click)="sendMessage()"
+              [disabled]="!messageText.trim() || messageText.length > 200"
+            >
+              <i class="fa fa-paper-plane"></i> 送信
+            </button>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="fileName" class="selected-file mt-2">
+        <div class="d-flex align-items-center">
+          <i class="fa fa-file me-2"></i>
+          <span class="file-name">{{ fileName }}</span>
+          <button class="btn btn-sm btn-outline-danger ms-2" (click)="onFileRemove()">
+            <i class="fa fa-times"></i>
+          </button>
+        </div>
+      </div>
+      <div class="text-end mt-1" *ngIf="!editingMessageId">
+        <small [ngClass]="{'text-danger': messageText.length > 200}">
+          {{ messageText.length }}/200文字
+        </small>
+        <div *ngIf="messageText.length > 200" class="text-danger mt-1">
+          ※201文字以上のメッセージは送信できません。200文字までのメッセージが送信されます
+        </div>
+      </div>
+      <div class="text-end mt-1" *ngIf="editingMessageId">
+        <small [ngClass]="{'text-danger': messageText.length > 200}">
+          {{ messageText.length }}/200文字（編集中）
+        </small>
+        <div *ngIf="messageText.length > 200" class="text-danger mt-1">
+          ※201文字以上のメッセージは送信できません。200文字までのメッセージが送信されます
+        </div>
+      </div>
+    </div>
+  </div>
+

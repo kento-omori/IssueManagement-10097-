@@ -1,0 +1,42 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // --- ヘルパー関数 ---
+    function isUserAuthenticated(userId) {
+      return request.auth != null && userId == request.auth.uid;
+    }
+
+    // プロジェクトメンバーかどうかをチェックする関数
+    function isProjectMember(projectId) {
+      let project = get(/databases/$(database)/documents/projects/$(projectId));
+      let isMember = request.auth != null && 
+                    project != null && 
+                    project.data.projectMembers is list && 
+                    request.auth.uid in project.data.projectMembers;
+      
+      // デバッグ情報
+      return isMember;
+    }
+
+    // プロジェクトのチャットファイル
+    match /projects/{projectId}/chating/{allPaths=**} {
+      allow read, write: if request.auth != null && isProjectMember(projectId);
+    }
+
+    // プロジェクトのi-shareファイル
+    match /projects/{projectId}/i-share/{allPaths=**} {
+      allow read, write: if request.auth != null //&& isProjectMember(projectId);
+    }
+
+    // ユーザーのi-shareファイル
+    match /users/{userId}/i-share/{allPaths=**} {
+      allow read, write: if isUserAuthenticated(userId);
+    }
+
+    // デフォルトルール：すべてのアクセスを拒否
+    //match /{allPaths=**} {
+      //allow read, write: if false;
+    //}
+  }
+} 

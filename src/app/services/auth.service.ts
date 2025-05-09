@@ -39,31 +39,27 @@ export class AuthService {
     try {
       const userCredential = await signInWithEmailAndPassword(this.auth, email, password);
       console.log('Firebase login successful');
+      
       // ユーザープロフィールを取得
       const userProfile = await this.userService.getUserProfile(userCredential.user.uid);
-      console.log('User profile loaded');
+      console.log('User profile:', userProfile);
+
+      if (!userProfile) {
+        throw new Error('ユーザープロフィールの取得に失敗しました');
+      }
 
       // NgZone内でナビゲーションを実行
       return new Promise<void>((resolve, reject) => {
         this.ngZone.run(async () => {
-          console.log('userProfile:', userProfile);
           try {
             console.log('Attempting navigation to /home');
-            if (userProfile && userProfile.uid) {
-              await this.router.navigate(['users', userProfile.uid, 'home']);
-              this.navigationService.setSelectedUserId(userProfile.uid); // ログインしたユーザIDを取得し、navigationServiceにセット
-            }
-            console.log('Navigation result:', userProfile);
-            if (userProfile) {
-              console.log('Navigation successful');
-              resolve();
-            } else {
-              console.error('Navigation failed');
-              reject(new Error('Navigation failed'));
-            }
+            await this.router.navigate(['users', userProfile.uid, 'home']);
+            this.navigationService.setSelectedUserId(userProfile.uid);
+            console.log('Navigation successful');
+            resolve();
           } catch (error) {
             console.error('Navigation error:', error);
-            reject(error);
+            reject(new Error('ナビゲーションに失敗しました: ' + error));
           }
         });
       });
@@ -76,27 +72,37 @@ export class AuthService {
   // 新規ユーザー登録
   async register(email: string, password: string, displayName: string) {
     try {
+      console.log('Starting user registration...');
       const userCredential = await createUserWithEmailAndPassword(this.auth, email, password);
       const user = userCredential.user;
+      console.log('User created with uid:', user.uid);
 
       // ユーザー名を設定
       await updateProfile(user, {
         displayName: displayName
       });
+      console.log('User profile updated with display name');
 
       // Firestoreにユーザープロフィールを保存
-      await this.userService.createUserProfile({
+      const userProfile = {
         uid: user.uid,
         email: user.email!,
         displayName: displayName,
         createdAt: new Date()
-      });
+      };
+      console.log('Creating user profile in Firestore:', userProfile);
+      
+      await this.userService.createUserProfile(userProfile);
+      console.log('User profile created in Firestore');
 
       // メール確認を送信
       await sendEmailVerification(user);
+      console.log('Verification email sent');
+      
       this.router.navigate(['/verify-email']);
       return userCredential;
     } catch (error) {
+      console.error('Registration error:', error);
       throw error;
     }
   }

@@ -15,7 +15,7 @@ export interface SpaceData {
 
 export interface Comment { //commentsの型
   user: string;
-  date: string;
+  date: Date;
   text: string;
   fileName?: string | null;
   fileData?: File | null;

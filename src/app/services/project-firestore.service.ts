@@ -12,7 +12,8 @@ import {
   Timestamp,
   where,
   arrayUnion,
-  arrayRemove
+  arrayRemove,
+  getDocs
 } from '@angular/fire/firestore';
 import { Observable, of, firstValueFrom } from 'rxjs';
 import { Auth } from '@angular/fire/auth';
@@ -144,10 +145,10 @@ export class ProjectFirestoreService {
     this.router.navigate([`projects/${projectId}/parent-i-share`]);
   }
   
-  // goChat(): void {
-  //   const projectId = this.navigationService.selectedProjectIdSource.getValue();
-  //   this.router.navigate([`projects/${projectId}/chat`]);
-  // }
+  goChat(): void {
+    const projectId = this.navigationService.selectedProjectIdSource.getValue();
+    this.router.navigate([`projects/${projectId}/chat`]);
+  }
 
   goDashboad(): void {
     const projectId = this.navigationService.selectedProjectIdSource.getValue();

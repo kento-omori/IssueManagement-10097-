@@ -20,19 +20,31 @@ export class UserService {
   ) {}
   
   // ユーザープロフィールを作成/更新
-  async createUserProfile(user: UserProfile): Promise<void> {
-    const userRef = doc(this.firestore, `users/${user.uid}`);
-    await setDoc(userRef, {
-      ...user,
-      createdAt: new Date()
-    });
+  async createUserProfile(userProfile: UserProfile): Promise<void> {
+    try {
+      console.log('Creating user profile in Firestore...');
+      const userRef = doc(this.firestore, `users/${userProfile.uid}`);
+      await setDoc(userRef, userProfile);
+      console.log('User profile created successfully');
+    } catch (error) {
+      console.error('Error creating user profile:', error);
+      throw new Error('ユーザープロフィールの作成に失敗しました: ' + error);
+    }
   }
 
   // ユーザープロフィールを取得
   async getUserProfile(uid: string): Promise<UserProfile | null> {
+    console.log('Getting user profile for uid:', uid);
     const userRef = doc(this.firestore, `users/${uid}`);
     const userSnap = await getDoc(userRef);
-    return userSnap.exists() ? userSnap.data() as UserProfile : null;
+    console.log('User document exists:', userSnap.exists());
+    if (userSnap.exists()) {
+      const data = userSnap.data();
+      console.log('User profile data:', data);
+      return data as UserProfile;
+    }
+    console.log('No user profile found');
+    return null;
   }
 
   // 現在のユーザーIDを取得

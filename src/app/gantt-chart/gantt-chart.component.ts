@@ -117,6 +117,7 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
     gantt.config.drag_resize = true;        // タスクバーのリサイズを有効化
     gantt.config.row_height = 36; // 行の高さを明示的に指定
     gantt.config.order_branch = true;
+    gantt.config.show_links = true;  // 依存関係の表示を有効化
     gantt.config.scales = [
       { unit: "month", step: 1, format: "%Y年%m月" }, //小文字のMにすると、月の表示が01月になる。大文字だと、英語表記
       { unit: "day", step: 1, format: "%j" }
@@ -331,37 +332,58 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
 
       // 全てのタスクのend_dateを+1日する
       const fixedTasks = tasks.map(task => {
-        const date = new Date(task.end_date);
-        date.setDate(date.getDate() + 1);
-        // yyyy-mm-dd形式に戻す
-        const yyyy = date.getFullYear();
-        const mm = ('0' + (date.getMonth() + 1)).slice(-2);
-        const dd = ('0' + date.getDate()).slice(-2);
-        return { ...task, end_date: `${yyyy}-${mm}-${dd}` };
-      });
+        // 日付のバリデーション
+        const startDate = new Date(task.start_date);
+        const endDate = new Date(task.end_date);
+        
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+          console.error('Invalid date found:', task);
+          return null;
+        }
 
-      // ここで全タスクのlinksを1つの配列にまとめる
-      const allLinks = tasks
-        .map(task => Array.isArray(task.links) ? task.links : [])
-        .flat()
-        .filter(link =>
-          link &&
-          link.id != null &&
-          link.source != null &&
-          link.target != null &&
-          link.type != null
-        )
-        .map(link => ({
-          id: String(link.id),
-          source: String(link.source),
-          target: String(link.target),
-          type: String(link.type)
-        }));
+        // end_dateに1日加算
+        endDate.setDate(endDate.getDate() + 1);
+        
+        // yyyy-mm-dd形式に戻す
+        const formatDate = (date: Date) => {
+          const yyyy = date.getFullYear();
+          const mm = ('0' + (date.getMonth() + 1)).slice(-2);
+          const dd = ('0' + date.getDate()).slice(-2);
+          return `${yyyy}-${mm}-${dd}`;
+        };
+
+        return {
+          ...task,
+          start_date: formatDate(startDate),
+          end_date: formatDate(endDate),
+          // リンクデータの型を確実に文字列に変換
+          links: task.links?.map(link => ({
+            id: String(link.id),
+            source: String(link.source),
+            target: String(link.target),
+            type: String(link.type)
+          })) || []
+        };
+      }).filter(task => task !== null); // 無効な日付のタスクを除外
+
+      // リンクデータの処理を改善
+      const allLinks = fixedTasks
+        .flatMap(task => task.links || [])
+        .filter(link => 
+          link && 
+          link.id && 
+          link.source && 
+          link.target && 
+          link.type
+        );
 
       // ガントチャートの初期化・描写
       gantt.init(this.ganttChart.nativeElement);
       gantt.clearAll();
-      gantt.parse({ data: fixedTasks, links: allLinks });
+      gantt.parse({ 
+        data: fixedTasks, 
+        links: allLinks 
+      });
       gantt.render();
     });
        

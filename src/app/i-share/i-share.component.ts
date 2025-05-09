@@ -71,10 +71,9 @@ export class IShareComponent implements OnInit {
       fileUrl = await this.fileStorageService.uploadFile(this.fileData, this.fileName || '');
     }
     const now = new Date();
-    const dateStr = now.toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const commentData = {
       user: this.userName,
-      date: dateStr,
+      date: now,  // Date型で保存
       text: this.commentText,
       fileName: this.fileName || null,
       fileUrl: fileUrl || null,
