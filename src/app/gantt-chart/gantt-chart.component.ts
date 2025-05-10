@@ -21,6 +21,8 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
   @ViewChild('ganttChart', { static: true }) ganttChart!: ElementRef;
   taskForm!: FormGroup;
   tasks: Todo[] | null = null;
+  formMode: 'new' | 'edit' | 'switched' = 'new';  // フォームのモードを管理
+  formModeMessage: string = '';  // モードメッセージを管理
 
   constructor(
     private idManagerService: IdManagerService,
@@ -47,6 +49,8 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
   private initForm() {
     this.taskForm = this.createForm();
     this.setupIdWatcher();
+    this.formMode = 'new';
+    this.formModeMessage = '新規作成モード';
   }
 
   private setupIdWatcher() {
@@ -64,6 +68,8 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
               priority: '普通',
               progress: 0
             }, { emitEvent: false });
+            this.formMode = 'new';
+            this.formModeMessage = '新規作成モード';
             return of(null);
           }
           return this.todoFirestoreService.getTodos();
@@ -86,6 +92,13 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
             priority: task.priority,
             progress: task.progress ? task.progress * 100 : 0
           }, { emitEvent: false });
+          if (this.formMode === 'new') {
+            this.formMode = 'edit';
+            this.formModeMessage = '編集モードに切り替わりました';  // switchedにしていたが、ややこしいのでeditに変更
+          } else {
+            this.formMode = 'edit';
+            this.formModeMessage = '編集モードに切り替わりました';
+          }
         } else {
           this.taskForm.patchValue({
             text: '',
@@ -97,6 +110,8 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
             priority: '普通',
             progress: 0
           }, { emitEvent: false });
+          this.formMode = 'new';
+          this.formModeMessage = '新規作成モード';
         }
       });
   }
@@ -106,7 +121,7 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
   };
 
   ngAfterViewInit() {
-    console.log('ngAfterViewInit');
+
     gantt.config.date_format = "%Y-%m-%d";
     gantt.config.scale_height = 50;
     gantt.config.min_column_width = 40;

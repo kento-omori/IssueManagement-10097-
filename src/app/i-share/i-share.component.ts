@@ -23,6 +23,7 @@ export class IShareComponent implements OnInit {
   fileName: string | null = null;
   fileData: File | null = null;
   fileUrl: string | null = null;
+  originalFileUrl: string | null = null;
 
   constructor(
     private authService: AuthService,
@@ -55,10 +56,7 @@ export class IShareComponent implements OnInit {
   async onFileRemove() {
     this.fileName = null;
     this.fileData = null;
-    if (this.fileUrl) {
-      await this.fileStorageService.deleteFile(this.fileUrl);
-      this.fileUrl = null;
-    };
+    this.fileUrl = null;
   }
 
   // コメント送信時の処理
@@ -156,15 +154,20 @@ export class IShareComponent implements OnInit {
     this.commentText = comment.text;
     this.fileName = comment.fileName || null;
     this.fileUrl = comment.fileUrl || null;
+    this.originalFileUrl = comment.fileUrl || null;
   }
 
+  // 編集取消時の処理
   onCancelEdit() {
     this.editingCommentId = null;
     this.commentText = '';
     this.fileName = null;
-    this.fileUrl = null;
+    this.fileData = null;
+    this.fileUrl = this.originalFileUrl;
+    this.originalFileUrl = null;
   }
 
+  // 編集保存時の処理
   async onSaveEdit() {
     if (!this.editingCommentId || !this.commentText.trim()) {
       return;
@@ -174,22 +177,53 @@ export class IShareComponent implements OnInit {
       if (!currentUser) {
         throw new Error('ユーザーが認証されていません');
       }
-      await this.ishareFirestoreService.editComment(
+
+      let fileUrl = this.fileUrl;
+      let fileChanged = false;
+
+      // 新しいファイルが選択された場合
+      if (this.fileData) {
+        fileUrl = await this.fileStorageService.uploadFile(this.fileData, this.fileName || '');
+        fileChanged = true;
+      }
+
+      // ファイルが変更され、元のファイルが存在する場合は削除
+      if (fileChanged && this.originalFileUrl) {
+        await this.fileStorageService.deleteFile(this.originalFileUrl);
+      }
+      // ファイルが削除され、元のファイルが存在する場合は削除
+      if (!fileUrl && this.originalFileUrl && !fileChanged) {
+        await this.fileStorageService.deleteFile(this.originalFileUrl);
+      }
+
+      const editedCommentData = {
+        text: this.commentText,
+        fileName: this.fileName || null,
+        fileUrl: fileUrl || null,
+        edited: true,
+        editedBy: currentUser.displayName || currentUser.email || '',
+        editedAt: new Date()
+      };
+
+      await this.ishareFirestoreService.updateComment(
         this.space!.dbid!,
         this.editingCommentId,
-        this.commentText,
-        currentUser.displayName || currentUser.email || ''
+        editedCommentData
       );
+
       // コメントリストを更新
       this.ishareFirestoreService.getComments(this.space!.dbid!).subscribe(
         (comments) => {
           this.comments = comments;
         }
       );
+
       this.editingCommentId = null;
       this.commentText = '';
       this.fileName = null;
+      this.fileData = null;
       this.fileUrl = null;
+      this.originalFileUrl = null;
     } catch (error) {
       console.error('コメントの編集に失敗しました:', error);
       // エラー処理を追加

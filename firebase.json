@@ -44,7 +44,7 @@
     }
   ],
   "hosting": {
-    "public": "public",
+    "public": "dist/issuemanagement/browser",
     "ignore": [
       "firebase.json",
       "**/.*",

@@ -42,7 +42,12 @@
     <div class="row g-3" style="text-align: center;">
       <!-- 管理番号 -->
       <div class="col-md-1">
-        <input type="number" class="form-control text-center" id="id" formControlName="id" min="1" step="1">
+        <input id="todoId" formControlName="id" type="number" class="form-control text-center" placeholder="管理番号" min="1" required (change)="onIdChange()">
+        <div class="validation-message">
+          <div *ngIf="todoForm.get('id')?.invalid && todoForm.get('id')?.touched" class="text-danger small">
+            <span *ngIf="todoForm.get('id')?.errors?.['required']">入力されていません</span>
+          </div>
+        </div>
       </div>
       <!-- タイトル -->
       <div class="col-md-2">
@@ -550,9 +555,9 @@
               <div class="comment-header d-flex justify-content-between align-items-center">
                 <div>
                   <small class="text-muted me-2">投稿者: {{ comment.userName }}</small>
-                  <small class="text-muted">{{ comment.createdAt | date:'yyyy/MM/dd HH:mm' }}</small>
+                  <small class="text-muted">{{ comment.createdAt.toDate() | date:'yyyy/MM/dd HH:mm' }}</small>
                 </div>
-                <button class="btn btn-sm btn-outline-danger" (click)="deleteComment(selectedTodo!, comment.id)">
+                <button class="btn btn-sm btn-outline-danger" (click)="deleteComment(selectedTodo!, comment.id)" *ngIf="canDeleteComment(comment)">
                   <i class="fa fa-trash"></i>
                 </button>
               </div>
@@ -566,9 +571,9 @@
                   <div class="reply-header d-flex justify-content-between align-items-center">
                     <div>
                       <small class="text-muted me-2">投稿者: {{ reply.userName }}</small>
-                      <small class="text-muted">{{ reply.createdAt | date:'yyyy/MM/dd HH:mm' }}</small>
+                      <small class="text-muted">{{ reply.createdAt.toDate() | date:'yyyy/MM/dd HH:mm' }}</small>
                     </div>
-                    <button class="btn btn-sm btn-outline-danger" (click)="deleteReply(comment, reply.id)">
+                    <button class="btn btn-sm btn-outline-danger" (click)="deleteReply(comment, reply.id)" *ngIf="canDeleteReply(reply)">
                       <i class="fa fa-trash"></i>
                     </button>
                   </div>

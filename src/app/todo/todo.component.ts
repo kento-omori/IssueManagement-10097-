@@ -11,6 +11,7 @@ import { IdManagerService } from '../services/id-manager.service';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { RouterModule } from '@angular/router';
+import { Timestamp } from '@angular/fire/firestore';
 @Component({
   selector: 'app-todo',
   standalone: true,
@@ -27,6 +28,7 @@ export class TodoComponent implements OnInit, OnDestroy {
   deletedId: number[] = [];
   previousStatus: { [key: number]: string } = {};  // 管理番号をキーとして前回のステータスを保存 dbidはundefinedになる可能性があるため、idをキーとして保存
   customFields: CustomField[] = [];
+  isFormInitialized: boolean = false;  // フォームの初期化状態を追跡
 
   // コメント関連の状態管理
   selectedTodo: Todo | null = null;
@@ -87,25 +89,27 @@ export class TodoComponent implements OnInit, OnDestroy {
     completed: 'all'
   };
 
+  // 使用済みの管理番号を保持する配列
+  usedIds: number[] = [];
+  // 入力フォームの状態を保持するオブジェクト
+  formState: any = {
+    text: '',
+    category: '',
+    start_date: '',
+    end_date: '',
+    assignee: '',
+    status: '未着手',
+    priority: '普通',
+    progress: 0
+  };
+
   // コンストラクター
   constructor(
     private authService: AuthService,
     private todoFirestoreService: TodoFirestoreService,
     private idManagerService: IdManagerService
   ) {
-    // フォームの初期化をconstructorから削除
-    this.todoForm = new FormGroup({
-      id: new FormControl({value: null, disabled: true}),
-      text: new FormControl('', [Validators.required]),
-      category: new FormControl('', [Validators.required]),
-      start_date: new FormControl(new Date().toISOString().split('T')[0], [Validators.required]),
-      end_date: new FormControl('', [Validators.required]),
-      assignee: new FormControl('', [Validators.required]),
-      status: new FormControl('', [Validators.required]),
-      priority: new FormControl('', [Validators.required])
-    }, {
-      validators: this.dateComparisonValidator
-    });
+    this.initializeForm();
   }
 
   // 初期化
@@ -115,6 +119,22 @@ export class TodoComponent implements OnInit, OnDestroy {
 
     this.todoFirestoreService.getTodos().subscribe(todos => {
       this.todos = todos;
+      // 使用済みの管理番号を更新
+      this.usedIds = todos.map(todo => todo.id);
+      
+      if (!this.isFormInitialized) {
+        // 初回のみフォームを初期化
+        this.initializeForm();
+        this.isFormInitialized = true;
+      } else {
+        // フォームが既に初期化されている場合、管理番号のみを更新
+        const currentId = this.todoForm.get('id')?.value;
+        if (currentId && this.usedIds.includes(currentId)) {
+          const nextId = this.getNextAvailableId();
+          this.todoForm.patchValue({ id: nextId });
+        }
+      }
+
       // フィルター状態を適用
       this.applyFilters();
       
@@ -134,16 +154,16 @@ export class TodoComponent implements OnInit, OnDestroy {
         }
       }
 
-      // Todoデータを取得した後にフォームを初期化
-      this.initializeForm();
       // カスタムフィールドのフォームコントロールを追加
       this.customFields.forEach(field => {
-        this.todoForm.addControl(`custom_${field.id}`, new FormControl(''));
+        if (!this.todoForm.contains(`custom_${field.id}`)) {
+          this.todoForm.addControl(`custom_${field.id}`, new FormControl(''));
+        }
       });
     });
   }
 
-  // フォーム初期化用のメソッドを追加
+  // フォーム初期化用のメソッド
   private initializeForm(): void {
     this.todoForm = new FormGroup({
       id: new FormControl({value: this.getNextAvailableId(), disabled: true}),
@@ -245,9 +265,7 @@ export class TodoComponent implements OnInit, OnDestroy {
       // 新しいTodoを追加
       } else {
         this.todos.push(formValue);
-        console.log('追加直後のtodos:', this.todos);
         this.todoFirestoreService.addTodo(formValue);
-        // 新しいIDを使用したことをIDManagerServiceに通知
         this.idManagerService.setCurrentId(formValue.id);
       }
 
@@ -266,7 +284,6 @@ export class TodoComponent implements OnInit, OnDestroy {
       this.todoForm.get('id')?.disable();
       // データ更新後にフィルタリングを適用
       this.applyFilters();
-      console.log('filteredTodos:', this.filteredTodos);
     }
   }
 
@@ -301,13 +318,37 @@ export class TodoComponent implements OnInit, OnDestroy {
     return null;  // 日付が正しい場合はnullを返す
   }
 
-  // 次に使用可能な管理番号を取得
-  getNextAvailableId(): number {
-    // 既存のID一覧
-    const usedIds = this.todos.map(todo => todo.id);
-    // 1から順に、使われていない最小の番号を探す
+  // 管理番号の変更を監視
+  onIdChange() {
+    const currentId = this.todoForm.get('id')?.value;
+    if (currentId && this.usedIds.includes(currentId)) {
+      // 現在の入力状態を保存
+      const currentFormState = {
+        text: this.todoForm.get('text')?.value,
+        category: this.todoForm.get('category')?.value,
+        start_date: this.todoForm.get('start_date')?.value,
+        end_date: this.todoForm.get('end_date')?.value,
+        assignee: this.todoForm.get('assignee')?.value,
+        status: this.todoForm.get('status')?.value,
+        priority: this.todoForm.get('priority')?.value
+      };
+
+      // 次の未使用番号を設定
+      const nextId = this.getNextAvailableId();
+      this.todoForm.patchValue({ id: nextId });
+
+      // 保存した入力状態を復元
+      this.todoForm.patchValue(currentFormState);
+
+      // フォームの更新を強制
+      this.todoForm.updateValueAndValidity();
+    }
+  }
+
+  // 次の未使用の管理番号を取得
+  private getNextAvailableId(): number {
     let nextId = 1;
-    while (usedIds.includes(nextId)) {
+    while (this.usedIds.includes(nextId)) {
       nextId++;
     }
     return nextId;
@@ -384,7 +425,7 @@ export class TodoComponent implements OnInit, OnDestroy {
         text: this.commentForm.value.text,
         userId: this.authService.getCurrentUserId() || '匿名',
         userName: this.authService.getCurrentUser()?.displayName || '匿名',
-        createdAt: new Date(),
+        createdAt: Timestamp.now(),
         replies: []
       };
       this.selectedTodo.comments = this.selectedTodo.comments || [];
@@ -400,6 +441,9 @@ export class TodoComponent implements OnInit, OnDestroy {
   // コメントを削除
   deleteComment(todo: Todo, commentId: string): void {
     if (!todo.comments) return;
+    const comment = todo.comments.find(c => c.id === commentId);
+    if (!comment || comment.userId !== this.authService.getCurrentUserId()) return;
+    
     const index = todo.comments.findIndex(comment => comment.id === commentId);
     if (index !== -1) {
       todo.comments.splice(index, 1);
@@ -408,6 +452,11 @@ export class TodoComponent implements OnInit, OnDestroy {
         this.todoFirestoreService.updateTodo(todo.dbid, { comments: todo.comments });
       }
     }
+  }
+
+  // コメントの削除権限をチェック
+  canDeleteComment(comment: Comment): boolean {
+    return comment.userId === this.authService.getCurrentUserId();
   }
 
   // 返信を追加
@@ -420,7 +469,7 @@ export class TodoComponent implements OnInit, OnDestroy {
           text: this.replyForm.value.text,
           userId: this.authService.getCurrentUserId() || '匿名',
           userName: this.authService.getCurrentUser()?.displayName || '匿名',
-          createdAt: new Date()
+          createdAt: Timestamp.now()
         };
         comment.replies.push(newReply);
         // Firestoreに反映
@@ -434,6 +483,9 @@ export class TodoComponent implements OnInit, OnDestroy {
 
   // 返信を削除
   deleteReply(comment: Comment, replyId: string): void {
+    const reply = comment.replies.find(r => r.id === replyId);
+    if (!reply || reply.userId !== this.authService.getCurrentUserId()) return;
+
     const index = comment.replies.findIndex(reply => reply.id === replyId);
     if (index !== -1) {
       comment.replies.splice(index, 1);
@@ -442,6 +494,11 @@ export class TodoComponent implements OnInit, OnDestroy {
         this.todoFirestoreService.updateTodo(this.selectedTodo.dbid, { comments: this.selectedTodo.comments });
       }
     }
+  }
+
+  // 返信の削除権限をチェック
+  canDeleteReply(reply: Reply): boolean {
+    return reply.userId === this.authService.getCurrentUserId();
   }
 
   //フィルタリング機能

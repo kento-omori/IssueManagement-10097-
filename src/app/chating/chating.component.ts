@@ -79,7 +79,6 @@ export class ChatingComponent implements OnInit, AfterViewInit {
   }
 
   async sendMessage() {
-    console.log('sendMessage called', this.messageText);
     if (!this.messageText.trim() || this.messageText.length > 200) return;
 
     const user = this.authService.getCurrentUser();

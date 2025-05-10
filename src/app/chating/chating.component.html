@@ -15,7 +15,7 @@
 
     <!-- メッセージリスト -->
     <div class="chat-messages mb-5" #messageContainer>
-      <div *ngFor="let message of messages" class="message-container" [ngClass]="{'deleted-message': message.isDeleted}">
+      <div *ngFor="let message of messages" class="message-container" [ngClass]="{'deleted-message': message.isDeleted, 'my-message': message.userId === currentUserId}">
         <div class="message-header">
           <span class="user-icon" [style.background-color]="message.isDeleted ? '#6c757d' : message.userColor">
             {{ message.userName[0] }}

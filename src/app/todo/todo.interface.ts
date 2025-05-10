@@ -1,3 +1,5 @@
+import { Timestamp } from '@angular/fire/firestore';
+
 export interface CustomField {
   id: string;
   name: string;
@@ -8,7 +10,7 @@ export interface CustomField {
 export interface Comment {
   id: string;
   text: string;
-  createdAt: Date;
+  createdAt: Timestamp;
   userId: string;
   userName: string;
   replies: Reply[];
@@ -17,7 +19,7 @@ export interface Comment {
 export interface Reply {
   id: string;
   text: string;
-  createdAt: Date;
+  createdAt: Timestamp;
   userId: string;
   userName: string;
 }
