@@ -13,12 +13,10 @@ export class NavigationService {
 //  アプリ内の“状態”を保持・通知するサービスです。
   setSelectedUserId(userId: string) {
     this.selectedUserIdSource.next(userId);
-    console.log('Selected user ID set to:', userId);
   };
 
   setSelectedProjectId(projectId: string | null) {
     this.selectedProjectIdSource.next(projectId);
-    console.log('Selected project ID set to:', projectId);
   };
 
 }

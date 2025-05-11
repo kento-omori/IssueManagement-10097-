@@ -14,13 +14,10 @@ export class HomeComponent implements OnInit {
   isLoading = true;
 
   constructor() {
-    console.log('HomeComponent constructor');
   }
 
   ngOnInit() {
-    console.log('HomeComponent ngOnInit start');
     // 単純化した初期化処理
     this.isLoading = false;
-    console.log('HomeComponent initialization complete');
   }
 }

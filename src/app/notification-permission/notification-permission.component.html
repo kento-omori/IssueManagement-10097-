@@ -1,11 +1,23 @@
-<div *ngIf="!permissionGranted && !permissionRequested">
-  <button class="btn btn-primary" (click)="requestPermission()">
-    通知を許可する
-  </button>
+<div class="notification-popup">
+  <div class="notification-content">
+    <h2 class="notification-title">プッシュ通知の許可</h2>
+    <p class="notification-description">
+      新しい課題の作成や更新があった際に、プッシュ通知を受け取ることができます。
+      通知を受け取るには、許可が必要です。
+    </p>
+    <div class="notification-buttons">
+      <button class="notification-button allow-button" (click)="requestPermission()">
+        許可する
+      </button>
+      <button class="notification-button decline-button" (click)="revokePermission()">
+        許可しない
+      </button>
+    </div>
+  </div>
 </div>
-<div *ngIf="permissionRequested && permissionGranted" class="text-success">
+<div *ngIf="hasRequested && permissionGranted" class="text-success">
   通知が許可されました。
 </div>
-<div *ngIf="permissionRequested && !permissionGranted" class="text-danger">
-  通知が許可されませんでした。
+<div *ngIf="hasRequested && !permissionGranted" class="text-danger">
+  通知が許可されませんでした。設定は、ベルマークからいつでも変更できます。
 </div>

@@ -79,7 +79,6 @@ export class CalendarComponent implements OnInit, OnDestroy {
     private navigationService: NavigationService,
     private userService: UserService
   ) {
-    console.log('Calendar constructor');
   }
 
   ngOnInit() {
@@ -114,7 +113,6 @@ export class CalendarComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    console.log('Calendar cleanup');
     this.subscriptions.forEach(sub => sub.unsubscribe());
   }
 
@@ -140,7 +138,6 @@ export class CalendarComponent implements OnInit, OnDestroy {
 
     this.isLoading = false;
     this.cdr.detectChanges();
-    console.log('Calendar events updated:', events.length);
   }
 
   // end_dateに1日加算する関数

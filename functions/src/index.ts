@@ -22,37 +22,42 @@ export const sendNotificationOnTaskAssigned = onDocumentWritten(
 
     // 新規作成時または担当者が変更された場合のみ処理
     if (!todoDataAfter || // タスクが削除された場合は何もしない
-        (todoDataBefore && todoDataBefore.assigneeId === todoDataAfter.assigneeId && event.data?.before.exists)) { // 担当者が変わっていない場合は何もしない
+        (todoDataBefore && todoDataBefore.assignee === todoDataAfter.assignee && event.data?.before.exists)) { // 担当者が変わっていない場合は何もしない
       console.log('担当者の変更なし、またはタスク削除のため通知スキップ');
       return null;
     }
 
-    const assigneeId = todoDataAfter.assigneeId;
-    if (!assigneeId) {
+    const assignee = todoDataAfter.assignee;
+    if (!assignee) {
       console.log('担当者が設定されていません。');
       return null;
     }
 
     // ユーザードキュメントからdisplayNameを取得
-    const userDoc = await db.collection('users').doc(assigneeId).get();
-    if (!userDoc.exists) {
-      console.log(`ユーザー ${assigneeId} さんが見つかりません。`);
+    const userQuery = await db.collection('users').where('displayName', '==', assignee).get();
+    if (userQuery.empty) {
+      console.log(`ユーザー ${assignee} さんが見つかりません。`);
       return null;
     }
 
+    const userDoc = userQuery.docs[0];
     const userData = userDoc.data();
     if (!userData) return null;
-    const displayName = userData.displayName || '名前未設定';  // displayNameがない場合のフォールバック
 
     // ログメッセージを修正
-    console.log(`タスク「${todoDataAfter.todoName}」が${displayName}さんに割り当てられました。`);
+    console.log(`タスク「${todoDataAfter.text}」が${assignee}さんに割り当てられました。`);
 
     // 1. 担当者のFCMトークンを取得
-    const tokensSnapshot = await db.collection('users').doc(assigneeId).collection('fcmTokens').get();
-    const tokens = tokensSnapshot.docs.map(doc => doc.id); // ドキュメントIDがトークンの場合
+    const tokensSnapshot = await db.collection('users').doc(userDoc.id).collection('fcmTokens').get();
+    if (tokensSnapshot.empty) {
+      console.log(`ユーザー ${assignee} さんのFCMトークンが見つかりません。`);
+      return null;
+    }
 
-    if (!tokens || tokens.length === 0) {
-      console.log(`ユーザー ${assigneeId} さんのFCMトークンが見つかりません。`);
+    const tokens = tokensSnapshot.docs.map(doc => doc.data().token).filter(token => token);
+
+    if (tokens.length === 0) {
+      console.log(`ユーザー ${assignee} さんの有効なFCMトークンがありません。`);
       return null;
     }
 
@@ -60,7 +65,7 @@ export const sendNotificationOnTaskAssigned = onDocumentWritten(
     const payload = {
       notification: {
         title: '新しいタスクが割り当てられました！',
-        body: `${displayName}さん、タスク「${todoDataAfter.todoName}」が割り当てられました。`,
+        body: `${assignee}さん、プロジェクト「${todoDataAfter.projectName}」のタスク「${todoDataAfter.text}」が割り当てられました。`,
         icon: 'public/text_kadai.png',
         click_action: 'projects/{projectId}/todos/{todoId}'
       }
@@ -88,7 +93,7 @@ export const sendNotificationOnTaskAssigned = onDocumentWritten(
           }
         }
       });
-      await cleanupInvalidTokens(assigneeId, tokensToRemove);
+      await cleanupInvalidTokens(userDoc.id, tokensToRemove);
     } catch (error) {
       console.error('通知送信中にエラー:', error);
     }
@@ -96,6 +101,7 @@ export const sendNotificationOnTaskAssigned = onDocumentWritten(
   }
 );
 
+/** 無効なトークンを削除する**/
 async function cleanupInvalidTokens(userId: string, tokensToRemove: string[]) {
   if (!tokensToRemove.length) return;
   const userRef = db.collection('users').doc(userId);
@@ -125,6 +131,7 @@ export const sendDeadlineReminderNotifications = onSchedule(
     const todosSnapshot = await db.collectionGroup('todos')
       .where('end_date', '>=', admin.firestore.Timestamp.fromDate(tomorrowStart))
       .where('end_date', '<=', admin.firestore.Timestamp.fromDate(tomorrowEnd))
+      .where('status', '!=', '完了')
       .get();
 
     if (todosSnapshot.empty) {
@@ -141,12 +148,13 @@ export const sendDeadlineReminderNotifications = onSchedule(
 
     // 2. 各タスクの担当者に通知を送信
     for (const task of tasksToNotify) {
-      const assigneeId = task.assigneeId;
-      if (!assigneeId) continue;
+      const assignee = task.assignee;
+      if (!assignee) continue;
 
-      const userDoc = await db.collection('users').doc(assigneeId).get();
-      if (!userDoc.exists) continue;
+      const userQuery = await db.collection('users').where('displayName', '==', assignee).get();
+      if (userQuery.empty) continue;
 
+      const userDoc = userQuery.docs[0];
       const userData = userDoc.data();
       if (!userData) continue;
       const displayName = userData.displayName || '名前未設定';  // displayNameがない場合のフォールバック
@@ -158,12 +166,12 @@ export const sendDeadlineReminderNotifications = onSchedule(
       const payload = {
         notification: {
           title: 'タスクの期限が迫っています！',
-          body: `${displayName}さん、タスク「${task.todoName}」の期限は翌日です。`,
+          body: `${displayName}さん、タスク「${task.text}」の期限は翌日です。`,
         },
       };
 
       try {
-        console.log(`ユーザー ${displayName} さんのタスク「${task.todoName}」の期限前日通知を送信します。`);
+        console.log(`ユーザー ${displayName} さんのタスク「${task.text}」の期限前日通知を送信します。`);
         const multicastMessage = {
           tokens: tokens,
           notification: payload.notification
@@ -181,7 +189,7 @@ export const sendDeadlineReminderNotifications = onSchedule(
             }
           }
         });
-        await cleanupInvalidTokens(assigneeId, tokensToRemove);
+        await cleanupInvalidTokens(userDoc.id, tokensToRemove);
       } catch (error) {
         console.error(`ユーザー ${displayName} への通知送信中にエラー:`, error);
       }
@@ -208,6 +216,7 @@ export const sendTodayDeadlineNotifications = onSchedule(
     const snapshot = await db.collectionGroup('todos')
       .where('end_date', '>=', admin.firestore.Timestamp.fromDate(todayStart))
       .where('end_date', '<=', admin.firestore.Timestamp.fromDate(todayEnd))
+      .where('status', '!=', '完了')
       .get();
 
     if (snapshot.empty) {
@@ -224,12 +233,13 @@ export const sendTodayDeadlineNotifications = onSchedule(
 
     // 2. 各タスクの担当者に通知を送信
     for (const task of tasksToNotify) {
-      const assigneeId = task.assigneeId;
-      if (!assigneeId) continue;
+      const assignee = task.assignee;
+      if (!assignee) continue;
 
-      const userDoc = await db.collection('users').doc(assigneeId).get();
-      if (!userDoc.exists) continue;
+      const userQuery = await db.collection('users').where('displayName', '==', assignee).get();
+      if (userQuery.empty) continue;
 
+      const userDoc = userQuery.docs[0];
       const userData = userDoc.data();
       if (!userData) continue;
       const displayName = userData.displayName || '名前未設定';  // displayNameがない場合のフォールバック
@@ -239,13 +249,13 @@ export const sendTodayDeadlineNotifications = onSchedule(
       const payload = {
         notification: {
           title: 'タスクの期限が今日です！',
-          body: `${displayName}さん、タスク「${task.todoName}」の期限は本日です。`,
+          body: `${displayName}さん、タスク「${task.text}」の期限は本日です。`,
         }
       };
 
       const tokensToRemove: string[] = [];
       try {
-        console.log(`ユーザー ${displayName} さんのタスク「${task.todoName}」の期限当日通知を送信します。`);
+        console.log(`ユーザー ${displayName} さんのタスク「${task.text}」の期限当日通知を送信します。`);
         const multicastMessage = {
           tokens: tokens,
           notification: payload.notification
@@ -263,12 +273,11 @@ export const sendTodayDeadlineNotifications = onSchedule(
             }
           }
         });
-        await cleanupInvalidTokens(assigneeId, tokensToRemove);
+        await cleanupInvalidTokens(userDoc.id, tokensToRemove);
       } catch (error) {
         console.error(`ユーザー ${displayName} さんへの通知送信中にエラー:`, error);
       }
     }
     console.log('今日が期限のタスク通知バッチ処理が完了しました。');
-    return;
   }
 );

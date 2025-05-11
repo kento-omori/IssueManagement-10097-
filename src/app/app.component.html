@@ -2,16 +2,16 @@
   <!-- 左側は題名とホームとワークスペース -->
   <div class="container-fluid">
     <div class="d-flex align-items-center">
-      <a class="navbar-brand" (click)="goHome()" style="cursor:pointer;">課題管理アプリ</a>
+      <a class="navbar-brand fs-4" (click)="goHome()" style="cursor:pointer;">課題管理アプリ</a>
       <ul class="navbar-nav me-auto">
         <li class="nav-item">
-          <a class="nav-link text-white" (click)="goHome()" style="cursor:pointer;">ホーム</a>
+          <a class="nav-link text-white fs-5" (click)="goHome()" style="cursor:pointer;">ホーム</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link text-white" (click)="goPrivate()" style="cursor:pointer;">個人ワークスペース</a>
+          <a class="nav-link text-white fs-5" (click)="goPrivate()" style="cursor:pointer;">個人ワークスペース</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link text-white" (click)="goProjectHome()" style="cursor:pointer;">共有ワークスペース</a>
+          <a class="nav-link text-white fs-5" (click)="goProjectHome()" style="cursor:pointer;">共有ワークスペース</a>
         </li>
       </ul>
     </div>
@@ -35,7 +35,7 @@
     </div> -->
     <div class="d-flex align-items-center">
       <!-- プロジェクト名表示 -->
-      <span *ngIf="currentProjectName" class="me-3 text-white">
+      <span *ngIf="currentProjectName" class="me-3 text-white fs-5">
         現在のページ：{{ currentProjectName }}
       </span>
       <!-- ユーザー情報表示 -->
@@ -63,28 +63,47 @@
             <div class="border-top pt-2">
               <button class="btn btn-outline-danger btn-sm w-100" (click)="logout()">ログアウト</button>
             </div>
+            <div class="border-top pt-2 mt-2">
+              <button class="btn btn-danger btn-sm w-100" (click)="confirmDeleteAccount()">アカウントを削除</button>
+            </div>
           </div>
         </div>
+        <!-- ログアウトボタン -->
         <button class="btn btn-outline-light" (click)="logout()">ログアウト</button>
       </ng-container>
-      <div class="ms-auto position-relative">
-        <button class="btn position-relative" (click)="toggleNotificationPopup()">
-          <i class="fa fa-bell text-white"></i>
-          <span *ngIf="unreadCount > 0" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-            {{ unreadCount }}
-          </span>
-        </button>
-        <app-notification-list
-          *ngIf="showNotificationPopup"
-          [notifications]="notifications"
-          (markAllAsRead)="onMarkAllAsRead()"
-        ></app-notification-list>
+      <!-- 通知ボタン（ベルマーク） -->
+      <div class="d-flex align-items-center" *ngIf="authService.authState$ | async as user">
+        <div class="position-relative me-3">
+          <button class="btn btn-link text-white position-relative" (click)="toggleNotificationPopup()">
+            <i class="fa-solid fa-bell"></i>
+            <span *ngIf="unreadCount > 0" class="position-absolute top-0 start-100 translate-middle">
+              <i class="fa-solid fa-circle text-danger" style="font-size: 0.8rem;"></i>
+              <span class="position-absolute top-50 start-50 translate-middle text-white" style="font-size: 0.7rem; font-weight: bold;">
+                {{ unreadCount }}
+              </span>
+            </span>
+          </button>
+          <!-- 通知ポップアップ -->
+          <div *ngIf="showNotificationPopup" class="notification-popup">
+            <app-notification-list
+              [notifications]="notifications"
+              (notificationClick)="onNotificationClick($event)">
+            </app-notification-list>
+          </div>
+          <!-- 通知許可ポップアップ（最初の許可求めるとき） -->
+          <div *ngIf="showPermissionPopup" class="notification-popup">
+            <app-notification-permission
+              (permissionRequested)="onPermissionRequested()"
+              (permissionRevoked)="onPermissionDeclined()">
+            </app-notification-permission>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </nav>
 <router-outlet></router-outlet>
-<!-- 通知バナー -->
+<!-- 通知バナー（ふぁおグランドの時の通知） -->
 <div *ngIf="showBanner" class="notification-banner">
   <strong>{{ bannerNotification?.title }}</strong> {{ bannerNotification?.body }}
 </div>

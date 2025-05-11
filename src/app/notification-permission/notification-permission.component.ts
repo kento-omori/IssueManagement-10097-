@@ -1,38 +1,86 @@
-import { Component } from '@angular/core';
-import { MessagingService } from '../services/messaging.service';
+import { Component, OnInit, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { UserService } from '../services/user.service';
+import { MessagingService } from '../services/messaging.service';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-notification-permission',
   standalone: true,
   imports: [CommonModule],
   templateUrl: './notification-permission.component.html',
-  styleUrl: './notification-permission.component.css'
+  styleUrls: ['./notification-permission.component.css']
 })
-export class NotificationPermissionComponent {
-  permissionRequested = false;
+export class NotificationPermissionComponent implements OnInit {
+  @Output() permissionRequested = new EventEmitter<void>();
+  @Output() permissionRevoked = new EventEmitter<void>();
   permissionGranted = false;
-  userId: string | null = null;
-  constructor(private messagingService: MessagingService, private userservice : UserService) {}
+  hasRequested = false;
+
+  constructor(
+    private messagingService: MessagingService,
+    private authService: AuthService
+  ) {}
+
+  ngOnInit() {
+    this.checkPermission();
+  }
+
+  private checkPermission() {
+    this.permissionGranted = this.isPermissionGranted();
+    this.hasRequested = Notification.permission !== 'default';
+  }
+
+  isPermissionGranted(): boolean {
+    return Notification.permission === 'granted';
+  }
 
   async requestPermission() {
-    this.permissionRequested = true;
-    this.userId = this.userservice.getCurrentUserId();
-    if (this.userId) {
-      const token = await this.messagingService.requestPermissionAndSaveToken(this.userId);
+    try {
+      const userId = this.authService.getCurrentUserId();
+      if (!userId) {
+        console.error('ユーザーIDが取得できません');
+        return;
+      }
+      const token = await this.messagingService.requestPermissionAndSaveToken(userId);
       if (token) {
         this.permissionGranted = true;
-        localStorage.setItem('fcmPermission', 'granted');
-        // 必要ならサーバーにトークン送信
+        this.hasRequested = true;
+        this.permissionRequested.emit();
       } else {
+        // FCMトークン取得に失敗した場合
         this.permissionGranted = false;
-        console.log('通知許可が拒否されました');
-      };
-    };
-};
+        this.hasRequested = false;
+      }
+    } catch (error) {
+      console.error('通知の許可に失敗しました:', error);
+      this.permissionGranted = false;
+      this.hasRequested = false;
+    }
+  }
 
-  static isPermissionGranted(): boolean {
-    return localStorage.getItem('fcmPermission') === 'granted';
+  async revokePermission() {
+    try {
+      const userId = this.authService.getCurrentUserId();
+      if (!userId) {
+        console.error('ユーザーIDが取得できません');
+        return;
+      }
+      await this.messagingService.revokePermission(userId);
+      // 通知の許可状態をリセット（ブラウザの設定をリセット）
+      if ('permissions' in navigator) {
+        try {
+          await (navigator as any).permissions.revoke({ name: 'notifications' });
+        } catch (revokeError) {
+          console.error('通知の許可状態のリセットに失敗しました:', revokeError);
+        }
+      }
+      this.permissionGranted = false;
+      this.hasRequested = true;  // ユーザーが明示的に無効化した場合はtrueのまま
+      this.permissionRevoked.emit();
+    } catch (error) {
+      console.error('通知の無効化に失敗しました:', error);
+      this.permissionGranted = false;
+      this.hasRequested = false;  // エラー時のみfalseに設定
+    }
   }
 }

@@ -1,5 +1,5 @@
-import { Injectable } from '@angular/core';
-import { Firestore, doc, setDoc, getDoc, collection, addDoc, getDocs, where, query, limit } from '@angular/fire/firestore';
+import { Injectable, inject } from '@angular/core';
+import { Firestore, doc, setDoc, getDoc, collection, addDoc, getDocs, where, query, limit, deleteDoc } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
 import { User } from '@angular/fire/auth';
 
@@ -14,18 +14,17 @@ export interface UserProfile {
   providedIn: 'root'
 })
 export class UserService {
+  private firestore = inject(Firestore);
+
   constructor(
-    private firestore: Firestore,
     private auth: Auth
   ) {}
   
   // ユーザープロフィールを作成/更新
   async createUserProfile(userProfile: UserProfile): Promise<void> {
     try {
-      console.log('Creating user profile in Firestore...');
       const userRef = doc(this.firestore, `users/${userProfile.uid}`);
       await setDoc(userRef, userProfile);
-      console.log('User profile created successfully');
     } catch (error) {
       console.error('Error creating user profile:', error);
       throw new Error('ユーザープロフィールの作成に失敗しました: ' + error);
@@ -34,16 +33,12 @@ export class UserService {
 
   // ユーザープロフィールを取得
   async getUserProfile(uid: string): Promise<UserProfile | null> {
-    console.log('Getting user profile for uid:', uid);
     const userRef = doc(this.firestore, `users/${uid}`);
     const userSnap = await getDoc(userRef);
-    console.log('User document exists:', userSnap.exists());
     if (userSnap.exists()) {
       const data = userSnap.data();
-      console.log('User profile data:', data);
       return data as UserProfile;
     }
-    console.log('No user profile found');
     return null;
   }
 
@@ -65,7 +60,6 @@ export class UserService {
       querySnapshot.forEach((doc) => {
         users.push({ ...doc.data() } as UserProfile);
       });
-      console.log('Found users by email:', users);
       return users;
     } catch (error) {
       console.error('Error searching user by email:', error);
@@ -78,7 +72,6 @@ export class UserService {
   async searchUsersByDisplayNamePrefix(displayNamePrefix: string): Promise<UserProfile[]> {
     const usersCollection = collection(this.firestore, 'users');
     if (!displayNamePrefix) { return [] };
-    console.log(`Searching for users with display name starting with: ${displayNamePrefix}`);
     // 'displayName' が指定された文字列で始まるユーザーを探す (簡易的な前方一致)
     // \uf8ff は非常に大きなUnicode文字で、前方一致検索のトリックとして使われる
     const q = query(usersCollection,
@@ -92,7 +85,6 @@ export class UserService {
       querySnapshot.forEach((doc) => {
         users.push({ ...doc.data() } as UserProfile);
       });
-      console.log('Found users by displayName prefix:', users);
       return users;
     } catch (error) {
       console.error('Error searching users by displayName prefix:', error);
@@ -130,4 +122,80 @@ export class UserService {
     return [];
   };
 
+  // ユーザーがプロジェクトの管理者またはオーナーかチェック
+  async isProjectAdminOrOwner(userId: string): Promise<boolean> {
+    try {
+      const projectsRef = collection(this.firestore, 'projects');
+      const projectsQuery = query(projectsRef, 
+        where('projectMembers', 'array-contains', userId)
+      );
+      const projectsSnapshot = await getDocs(projectsQuery);
+
+      for (const projectDoc of projectsSnapshot.docs) {
+        const projectData = projectDoc.data();
+        // プロジェクトの管理者またはオーナーかチェック
+        if (projectData['owner']?.includes(userId) || 
+            projectData['admin']?.includes(userId)) {
+          return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error('プロジェクト管理者チェックに失敗しました:', error);
+      throw error;
+    }
+  }
+
+  // ユーザーデータの削除
+  async deleteUserData(userId: string): Promise<void> {
+    try {
+      // プロジェクトの管理者またはオーナーかチェック
+      const isAdminOrOwner = await this.isProjectAdminOrOwner(userId);
+      if (isAdminOrOwner) {
+        throw new Error('プロジェクトの管理者またはオーナーはアカウントを削除できません。先にプロジェクトの管理者権限を移譲してください。');
+      }
+
+      // ユーザーのメインドキュメントを削除
+      await deleteDoc(doc(this.firestore, 'users', userId));
+
+      // ユーザーに関連するサブコレクションの削除
+      const subCollections = [
+        'fcmtoken',
+        'todos',
+        'tasklist',
+        'gantt-chart',
+        'parent-i-share',
+        'i-share'
+      ];
+
+      for (const collectionName of subCollections) {
+        const subCollectionRef = collection(this.firestore, 'users', userId, collectionName);
+        const querySnapshot = await getDocs(subCollectionRef);
+        
+        // サブコレクション内の各ドキュメントを削除
+        const deletePromises = querySnapshot.docs.map(doc => 
+          deleteDoc(doc.ref)
+        );
+        await Promise.all(deletePromises);
+      }
+
+      // プロジェクト関連のデータを削除
+      const projectsRef = collection(this.firestore, 'projects');
+      const projectsQuery = query(projectsRef, where('members', 'array-contains', userId));
+      const projectsSnapshot = await getDocs(projectsQuery);
+
+      for (const projectDoc of projectsSnapshot.docs) {
+        const projectId = projectDoc.id;
+        // プロジェクトのメンバーリストからユーザーを削除
+        const projectRef = doc(this.firestore, 'projects', projectId);
+        const projectData = projectDoc.data();
+        const updatedMembers = projectData['members'].filter((id: string) => id !== userId);
+        await setDoc(projectRef, { members: updatedMembers }, { merge: true });
+      }
+
+    } catch (error) {
+      console.error('ユーザーデータの削除に失敗しました:', error);
+      throw error;
+    }
+  }
 }
