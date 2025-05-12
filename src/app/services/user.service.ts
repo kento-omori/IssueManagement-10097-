@@ -158,7 +158,7 @@ export class UserService {
       // ユーザーのメインドキュメントを削除
       await deleteDoc(doc(this.firestore, 'users', userId));
 
-      // ユーザーに関連するサブコレクションの削除
+      // ユーザーに関連するサブコレクションの削除（プロジェクトデータは消さない！）
       const subCollections = [
         'fcmtoken',
         'todos',

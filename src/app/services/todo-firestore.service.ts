@@ -257,4 +257,10 @@ export class TodoFirestoreService {
       map(([personal, project]) => [...personal, ...project])
     );
   }
+
+  // 現在のワークスペースが個人ワークスペースかどうかを判定
+  isPersonalWorkspace(): boolean {
+    const url = this.router.url;
+    return url.startsWith('/users');
+  }
 }

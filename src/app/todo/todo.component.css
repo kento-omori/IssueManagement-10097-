@@ -139,3 +139,13 @@ button {
   border-radius: 6px;
   padding: 2px 8px;
 }
+
+.comment-body pre, .reply-body pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: inherit;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+}

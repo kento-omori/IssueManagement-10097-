@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet,RouterLink,RouterLinkActive } from '@angular/router';
 import { AuthService } from './services/auth.service';
@@ -11,6 +11,7 @@ import { MessagingService } from './services/messaging.service';
 import { NotificationData } from './services/messaging.service';
 import { NotificationListComponent } from './notification-list/notification-list.component';
 import { NotificationPermissionComponent } from './notification-permission/notification-permission.component';
+import { ToastrService } from 'ngx-toastr';
 
 @Component({
   selector: 'app-root',
@@ -20,7 +21,7 @@ import { NotificationPermissionComponent } from './notification-permission/notif
   styleUrls: ['./app.component.css']
 })
 
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy {
   title = 'issuemanagement';
   currentProjectName: string = '';
   notifications: NotificationData[] = [];
@@ -29,6 +30,8 @@ export class AppComponent implements OnInit {
   showPermissionPopup = false;
   showBanner = false;
   bannerNotification: NotificationData | null = null;
+  private notificationSubscription: any;
+  displayName: string = '';
   
   constructor(
     public authService: AuthService,
@@ -36,24 +39,99 @@ export class AppComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private projectFirestoreService: ProjectFirestoreService,
-    private messagingService: MessagingService
+    private messagingService: MessagingService,
+    private toastr: ToastrService,
+    private cdr: ChangeDetectorRef
   ) {
     // ルーティングやサービスの状態に応じてプロジェクト名をセット
     this.setCurrentProjectName();
-    // Service Workerの登録を待機してから通知の設定を行う
-    this.initializeNotifications();
+    // 通知の購読を即座に開始
+    this.notificationSubscription = this.messagingService.notifications$.subscribe(list => {
+      this.notifications = list;
+      this.unreadCount = list.filter(n => !n.read).length;
+      // 新着通知があればナビゲーション部分の下に表示（１０秒）
+      if (list.length > 0 && !list[0].read) {
+        this.showBanner = true;
+        this.bannerNotification = list[0];
+        setTimeout(() => {
+          this.showBanner = false;
+          this.bannerNotification = null;
+        }, 5000);
+      }
+    });
+
+    // 認証状態の変更を監視
+    this.authService.onAuthStateChanged().subscribe(user => {
+      if (user) {
+        console.log('ユーザーが認証されました:', user.uid);
+        this.initializeNotifications();
+        // 表示名を更新
+        this.displayName = user.displayName || 'ゲスト';
+      } else {
+        this.displayName = 'ゲスト';
+      }
+    });
+  }
+
+  // 初期化
+  async ngOnInit() {
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe(() => {
+      let currentRoute = this.route.root;
+      while (currentRoute.firstChild) {
+        currentRoute = currentRoute.firstChild;
+      }
+      // userId
+      let userId = currentRoute.snapshot.paramMap.get('userId');
+      if (!userId) {
+        // URLにuserIdがない場合はAuthServiceから取得→URLにuserIdやprojectIdがない場合
+        userId = this.authService.getCurrentUserId();
+      }
+      if (userId) {
+        this.navigationService.setSelectedUserId(userId);
+        // ユーザーIDが取得できた時点で通知許可をチェック
+        this.checkNotificationPermission();
+      }
+      // projectId
+      const projectId = currentRoute.snapshot.paramMap.get('projectId');
+      if (projectId) {
+        this.navigationService.setSelectedProjectId(projectId);
+      };
+      // プロジェクト名や個人ワークスペース名を即座に反映
+      this.setCurrentProjectName();
+    });
   }
 
   private async initializeNotifications() {
     try {
+      console.log('通知の初期化を開始します');
       const registration = await this.registerServiceWorker();
       if (registration) {
         console.log('Service Worker登録成功:', registration);
         // Service Workerの登録が完了したら通知の設定を行う
         const userId = this.authService.getCurrentUserId();
         if (userId) {
-          await this.messagingService.requestPermissionAndSaveToken(userId);
+          console.log('userId:', userId);
+          // 通知の許可状態に応じて処理を分岐
+          switch (Notification.permission) {
+            case 'granted':
+              console.log('通知が許可されています。トークンを保存します');
+              await this.messagingService.requestPermissionAndSaveToken(userId);
+              console.log('FCMトークンを保存しました');
+              break;
+            case 'denied':
+              console.log('通知が拒否されています。トークンを削除します');
+              await this.messagingService.revokePermission(userId);
+              break;
+            default:
+              console.log('通知の許可状態が未設定です:', Notification.permission);
+          }
+        } else {
+          console.log('ユーザーIDが取得できません');
         }
+      } else {
+        console.log('Service Workerの登録に失敗しました');
       }
     } catch (error) {
       console.error('通知の初期化に失敗しました:', error);
@@ -81,6 +159,26 @@ export class AppComponent implements OnInit {
     } catch (error) {
       console.error('ログアウトエラー:', error);
     }
+  }
+
+  goHome() {
+    this.navigationService.selectedUserId$.subscribe(userId => {
+      if (userId) {
+        this.router.navigate(['users', userId, 'home']);
+      }
+    }).unsubscribe(); // メモリリーク防止のため即時unsubscribe
+  }
+
+  goPrivate() {
+    this.navigationService.selectedUserId$.subscribe(userId => {
+      if (userId) {
+        this.router.navigate(['users', userId, 'private']);
+      }
+    }).unsubscribe();
+  }
+
+  goProjectHome() {
+    this.router.navigate(['projects']);
   }
 
   // プロジェクト名や個人ワークスペース名を即座に反映
@@ -111,54 +209,18 @@ export class AppComponent implements OnInit {
     }
   }
 
-  // 初期化
-  ngOnInit() {
-    this.router.events.pipe(
-      filter(event => event instanceof NavigationEnd)
-    ).subscribe(() => {
-      let currentRoute = this.route.root;
-      while (currentRoute.firstChild) {
-        currentRoute = currentRoute.firstChild;
+  ngOnDestroy() {
+    // 通知の購読を解除
+    if (this.notificationSubscription) {
+      this.notificationSubscription.unsubscribe();
       }
-      // userId
-      let userId = currentRoute.snapshot.paramMap.get('userId');
-      if (!userId) {
-        // URLにuserIdがない場合はAuthServiceから取得→URLにuserIdやprojectIdがない場合
-        userId = this.authService.getCurrentUserId();
-      }
-      if (userId) {
-        this.navigationService.setSelectedUserId(userId);
-        // ユーザーIDが取得できた時点で通知許可をチェック
-        this.checkNotificationPermission();
-      }
-      // projectId
-      const projectId = currentRoute.snapshot.paramMap.get('projectId');
-      if (projectId) {
-        this.navigationService.setSelectedProjectId(projectId);
-      };
-      // プロジェクト名や個人ワークスペース名を即座に反映
-      this.setCurrentProjectName();
-    });
-
-    this.messagingService.notifications$.subscribe(list => {
-      this.notifications = list;
-      this.unreadCount = list.filter(n => !n.read).length;
-      // 新着通知があればナビゲーション部分の下に表示（１０秒）
-      if (list.length > 0 && !list[0].read) {
-        this.showBanner = true;
-        this.bannerNotification = list[0];
-        setTimeout(() => {
-          this.showBanner = false;
-          this.bannerNotification = null;
-        }, 10000);
-      }
-    });
   }
 
   // 通知許可状態をチェックするメソッド
   private async checkNotificationPermission() {
     const userId = this.authService.getCurrentUserId();
     if (!userId) return;
+
     // 通知の許可状態をチェック
     if (Notification.permission === 'default') {
       try {
@@ -168,6 +230,7 @@ export class AppComponent implements OnInit {
           console.log('通知許可ポップアップを表示します');
           this.showPermissionPopup = true;
           this.showNotificationPopup = false;
+          this.cdr.detectChanges(); // 変更を即座に検知
         }
       } catch (error) {
         console.error('通知許可チェックエラー:', error);
@@ -175,36 +238,25 @@ export class AppComponent implements OnInit {
     }
   }
 
-  goHome() {
-    this.navigationService.selectedUserId$.subscribe(userId => {
-      if (userId) {
-        this.router.navigate(['users', userId, 'home']);
-      }
-    }).unsubscribe(); // メモリリーク防止のため即時unsubscribe
-  }
-
-  goPrivate() {
-    this.navigationService.selectedUserId$.subscribe(userId => {
-      if (userId) {
-        this.router.navigate(['users', userId, 'private']);
-      }
-    }).unsubscribe();
-  }
-
-  goProjectHome() {
-    this.router.navigate(['projects']);
-  }
-
   // 通知ポップアップ
   toggleNotificationPopup() {
-    // プッシュ通知の許可を初めてとるとき（登録してログインした時）
-    if (Notification.permission === 'default') {
+    console.log('通知ポップアップの切り替えが呼び出されました');
+    console.log('現在の通知許可状態:', Notification.permission);
+    console.log('現在のshowNotificationPopup:', this.showNotificationPopup);
+    
+    // 通知ポップアップの表示状態を切り替え
+    this.showNotificationPopup = !this.showNotificationPopup;
+    
+    // 通知許可が未設定の場合のみ許可ポップアップを表示
+    if (Notification.permission === 'default' && this.showNotificationPopup) {
+      console.log('通知許可が未設定のため、許可ポップアップを表示します');
       this.showPermissionPopup = true;
-      this.showNotificationPopup = false;
+      this.cdr.detectChanges(); // 変更を即座に検知
     } else {
-      this.showNotificationPopup = !this.showNotificationPopup;
       this.showPermissionPopup = false;
     }
+    
+    console.log('切り替え後のshowNotificationPopup:', this.showNotificationPopup);
   }
 
   // 通知許可ボタンが押されたときの処理
@@ -221,11 +273,16 @@ export class AppComponent implements OnInit {
 
   // 通知拒否ボタンが押されたときの処理
   async onPermissionDeclined() {
+    // 先にポップアップを非表示にする
+    this.showPermissionPopup = false;
+    this.showNotificationPopup = false;
+    this.cdr.detectChanges();
+
+    // その後で処理を実行
     const userId = this.authService.getCurrentUserId();
     if (userId) {
       await this.messagingService.savePermissionCheck(userId);
     }
-    this.showPermissionPopup = false;
   }
 
   onNotificationClick(notification: NotificationData) {
@@ -235,6 +292,7 @@ export class AppComponent implements OnInit {
 
   onMarkAllAsRead() {
     this.messagingService.markAllAsRead();
+    console.log('全ての通知を既読にしました');
     this.showNotificationPopup = false;
   }
 
@@ -255,6 +313,37 @@ export class AppComponent implements OnInit {
           alert('プロジェクトの管理者またはオーナーはアカウントを削除できません。\n先にプロジェクトの管理者権限を移譲してください。');
         } else {
           alert('アカウントの削除に失敗しました。もう一度お試しください。');
+        }
+      }
+    }
+  }
+
+  // ユーザ名の変更
+  async changeDisplayName() {
+    const userId = this.authService.getCurrentUserId();
+    if (userId) {
+      const newDisplayName = prompt('2文字以上20文字以下で新しいユーザー名を入力してください\n※ユーザー名変更後は、必ず更新ボタンを押してください\n　変更が反映されません');
+      if (newDisplayName) {
+        if (newDisplayName.length < 2) {
+          this.toastr.error('ユーザー名は2文字以上で入力してください');
+          return;
+        }
+        if (newDisplayName.length > 20) {
+          this.toastr.error('ユーザー名は20文字以下で入力してください');
+          return;
+        }
+        try {
+          await this.authService.changeDisplayName(newDisplayName);
+          // 現在のユーザー情報を取得して更新
+          const currentUser = this.authService.getCurrentUser();
+          if (currentUser) {
+            this.displayName = newDisplayName;
+            this.cdr.detectChanges();
+          }
+          this.toastr.success('ユーザー名を更新しました\nユーザー名変更後は、必ず更新ボタンを押してください');
+        } catch (error) {
+          console.error('ユーザー名の更新に失敗しました:', error);
+          this.toastr.error('ユーザー名の更新に失敗しました');
         }
       }
     }

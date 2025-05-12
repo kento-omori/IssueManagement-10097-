@@ -49,6 +49,7 @@ export class MessagingService {
     });
   }
 
+  // 既存デバイスを検索（トークンがあるかどうか）
   private async findExistingDevice(userId: string, deviceInfo: any): Promise<string | null> {
     const tokensRef = collection(this.firestore, 'users', userId, 'fcmTokens');
     const q = query(tokensRef, 
@@ -59,6 +60,7 @@ export class MessagingService {
     return !querySnapshot.empty ? querySnapshot.docs[0].id : null;
   }
 
+  // Service Workerの登録完了を待つ
   private async waitForServiceWorker(): Promise<ServiceWorkerRegistration | null> {
     try {
       if ('serviceWorker' in navigator) {
@@ -90,6 +92,7 @@ export class MessagingService {
     }
   }
 
+  // Service Workerの登録状態を監視
   private async checkServiceWorkerRegistration() {
     try {
       if ('serviceWorker' in navigator) {
@@ -126,11 +129,11 @@ export class MessagingService {
             return null;
           }
 
-          const token = await getToken(this.messaging, {
-            vapidKey: 'BIU0QUJMZ6xnF8yk9lUUnBOBjJQAgOrqqpf_uHLFo9NoZ72d9lEt0N6t0uPssnIt8Lc5jF0xmBEOpFKq62fKmiQ'
-          });
-          await this.saveTokenToFirestore(userId, token);
-          return token;
+        const token = await getToken(this.messaging, {
+          vapidKey: 'BIU0QUJMZ6xnF8yk9lUUnBOBjJQAgOrqqpf_uHLFo9NoZ72d9lEt0N6t0uPssnIt8Lc5jF0xmBEOpFKq62fKmiQ'
+        });
+        await this.saveTokenToFirestore(userId, token);
+        return token;
         } catch (tokenError) {
           console.error('FCMトークンの取得に失敗しました:', tokenError);
           // FCMトークン取得に失敗した場合、通知の許可状態をリセット
@@ -162,7 +165,7 @@ export class MessagingService {
       token,
       deviceInfo,
       updatedAt: new Date(),
-      permissionChecked: false
+      permissionChecked: false // 次の確認でtrueにすることで、通知許可の確認をしたことをFirestoreに保存する
     });
   }
 
@@ -273,6 +276,7 @@ export class MessagingService {
     return 'unknown';
   }
 
+  // 通知許可の確認状態をリセット
   private async resetNotificationPermission(): Promise<void> {
     try {
       // 通知の許可状態をリセット（ブラウザの設定をリセット）

@@ -88,10 +88,23 @@ export class TasklistComponent implements OnInit {
 
   // 初期設定を最初にする　Firestoreからデータを取得して表示、継続して変更を検知、データ更新
   ngOnInit() {
+    // ローカルストレージからフィルター状態を復元
+    const savedFilters = localStorage.getItem('taskFilters');
+    if (savedFilters) {
+      this.filters = JSON.parse(savedFilters);
+    }
+
     this.tasklistFirestoreService.getTasks().subscribe(tasks => {
       this.taskLists = tasks.sort((a, b) => (a.order || 0) - (b.order || 0));
       this.filteredTaskLists = [...this.taskLists];
+      // 保存されたフィルター状態を適用
+      this.applyFilters();
     });
+  }
+
+  // フィルター状態を保存するメソッド
+  private saveFilters(): void {
+    localStorage.setItem('taskFilters', JSON.stringify(this.filters));
   }
 
   // フィルタリング機能の関数
@@ -207,6 +220,8 @@ export class TasklistComponent implements OnInit {
     }
 
     this.filteredTaskLists = filtered;
+    // フィルター状態を保存
+    this.saveFilters();
   }
 
   // 並び替えの関数
@@ -272,7 +287,11 @@ export class TasklistComponent implements OnInit {
     taskList.completed = !taskList.completed;
     this.tasklistFirestoreService.updateTask(taskList.id!, { completed: taskList.completed });
     this.cdr.detectChanges();
-    this.applyFilters();  // filteredTaskListsを更新
+    
+    // フィルタリングが適用されている場合のみ、フィルターを再適用
+    if (this.isFiltered()) {
+      this.applyFilters();
+    }
   }
 
   // タスクの削除
@@ -362,5 +381,24 @@ export class TasklistComponent implements OnInit {
   goDashboad() {
     const userId = this.navigationService.selectedUserIdSource.getValue();
     this.router.navigate(['users', userId, 'private']);
+  }
+
+  // フィルターをリセットするメソッド
+  resetFilters(): void {
+    this.filters = {
+      title: '',
+      dateFrom: '',
+      dateTo: '',
+      timeFrom: '',
+      timeTo: '',
+      memo: '',
+      status: 'all',
+      titleSort: 'none',
+      dateSort: 'none',
+      timeSort: 'none',
+      memoSort: 'none'
+    };
+    localStorage.removeItem('taskFilters');
+    this.applyFilters();
   }
 }

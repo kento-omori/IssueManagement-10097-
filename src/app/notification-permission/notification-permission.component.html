@@ -6,11 +6,13 @@
       通知を受け取るには、許可が必要です。
     </p>
     <div class="notification-buttons">
-      <button class="notification-button allow-button" (click)="requestPermission()">
-        許可する
+      <button class="notification-button allow-button" (click)="requestPermission()" [disabled]="isLoading">
+        <span *ngIf="!isLoading">許可する</span>
+        <span *ngIf="isLoading">処理中...</span>
       </button>
-      <button class="notification-button decline-button" (click)="revokePermission()">
-        許可しない
+      <button class="notification-button decline-button" (click)="revokePermission()" [disabled]="isLoading">
+        <span *ngIf="!isLoading">許可しない</span>
+        <span *ngIf="isLoading">処理中...</span>
       </button>
     </div>
   </div>

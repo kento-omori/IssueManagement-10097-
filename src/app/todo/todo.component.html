@@ -51,16 +51,22 @@
       </div>
       <!-- タイトル -->
       <div class="col-md-2">
-        <input type="text" class="form-control" id="text" formControlName="text" required>
-        <div *ngIf="todoForm.get('text')?.errors?.['required'] && todoForm.get('text')?.touched" class="text-danger small mt-1">
+        <input type="text" class="form-control" id="text" formControlName="text" [ngClass]="{'is-invalid': todoForm.get('text')?.invalid && todoForm.get('text')?.touched}" required>
+        <div class="invalid-feedback" *ngIf="todoForm.get('text')?.errors?.['required'] && todoForm.get('text')?.touched">
           ＊タイトルが入力されていません
+        </div>
+        <div class="invalid-feedback" *ngIf="todoForm.get('text')?.errors?.['whitespace'] && todoForm.get('text')?.touched">
+          ＊スペースのみの入力はできません
         </div>
       </div>
       <!-- カテゴリ -->
       <div class="col-md-1">
-        <input type="text" class="form-control" id="category" formControlName="category">
-        <div *ngIf="todoForm.get('category')?.errors?.['required'] && todoForm.get('category')?.touched" class="text-danger small mt-1">
+        <input type="text" class="form-control" id="category" formControlName="category" [ngClass]="{'is-invalid': todoForm.get('category')?.invalid && todoForm.get('category')?.touched}">
+        <div class="invalid-feedback" *ngIf="todoForm.get('category')?.errors?.['required'] && todoForm.get('category')?.touched">
           ＊カテゴリが入力されていません
+        </div>
+        <div class="invalid-feedback" *ngIf="todoForm.get('category')?.errors?.['whitespace'] && todoForm.get('category')?.touched">
+          ＊スペースのみの入力はできません
         </div>
       </div>
       <!-- 開始日 -->
@@ -82,9 +88,12 @@
       </div>
       <!-- 担当者 -->
       <div class="col-md-1">
-        <input type="text" class="form-control" id="assignee" formControlName="assignee">
-        <div *ngIf="todoForm.get('assignee')?.errors?.['required'] && todoForm.get('assignee')?.touched" class="text-danger small mt-1">
-          ＊担当者が選択されていません
+        <input type="text" class="form-control" id="assignee" formControlName="assignee" [ngClass]="{'is-invalid': todoForm.get('assignee')?.invalid && todoForm.get('assignee')?.touched}">
+        <div class="invalid-feedback" *ngIf="todoForm.get('assignee')?.errors?.['required'] && todoForm.get('assignee')?.touched">
+          ＊担当者が入力されていません
+        </div>
+        <div class="invalid-feedback" *ngIf="todoForm.get('assignee')?.errors?.['whitespace'] && todoForm.get('assignee')?.touched">
+          ＊スペースのみの入力はできません
         </div>
       </div>
       <!-- ステータス -->
@@ -137,7 +146,7 @@
 <div class="container-fluid mt-4">
   <div class="card mb-4">
     <div class="card-header bg-secondary text-white">
-      <h6 class="mb-0">項目の追加</h6>
+      <h6 class="mb-0">項目の追加（４つまで追加可能）</h6>
     </div>
     <div class="card-body">
       <form [formGroup]="customFieldForm" (ngSubmit)="addCustomField()" class="row g-3 align-items-end">
@@ -533,13 +542,23 @@
         <form [formGroup]="commentForm" (ngSubmit)="addComment()">
           <div class="mb-3">
             <label class="form-label">新規コメント</label>
-            <textarea class="form-control" formControlName="text" rows="3"></textarea>
-            <div *ngIf="commentForm.get('text')?.errors?.['required'] && commentForm.get('text')?.touched" class="text-danger small mt-1">
-              ＊コメントを入力してください
+            <textarea class="form-control" formControlName="text" rows="3" maxlength="100" required></textarea>
+            <div class="d-flex justify-content-between align-items-center mt-1">
+              <div class="text-danger small">
+                <span *ngIf="commentForm.get('text')?.errors?.['required'] && commentForm.get('text')?.touched">
+                  ＊コメントを入力してください
+                </span>
+                <span *ngIf="commentForm.get('text')?.errors?.['maxlength'] && commentForm.get('text')?.touched">
+                  ＊100文字以内で入力してください
+                </span>
+              </div>
+              <small class="text-muted">
+                {{commentForm.get('text')?.value?.length || 0}}/100文字
+              </small>
             </div>
           </div>
           <div class="text-end mb-4">
-            <button type="submit" class="btn btn-primary position-static" [disabled]="!commentForm.valid">
+            <button type="submit" class="btn btn-primary position-static" [disabled]="!commentForm.valid || !commentForm.get('text')?.value?.trim()">
               <i class="fa fa-plus"></i> コメントを追加
             </button>
           </div>
@@ -562,7 +581,7 @@
                 </button>
               </div>
               <div class="comment-body p-2">
-                {{ comment.text }}
+                <pre class="mb-0">{{ comment.text }}</pre>
               </div>
 
               <!-- 返信一覧 -->
@@ -578,7 +597,7 @@
                     </button>
                   </div>
                   <div class="reply-body p-2">
-                    {{ reply.text }}
+                    <pre class="mb-0">{{ reply.text }}</pre>
                   </div>
                 </div>
               </div>
@@ -586,12 +605,25 @@
               <!-- 返信フォーム -->
               <div class="reply-form mt-2 ms-4">
                 <form [formGroup]="replyForm" (ngSubmit)="addReplyToComment(comment.id)">
-                  <div class="input-group">
-                    <input type="text" class="form-control form-control-sm" formControlName="text" placeholder="返信を入力...">
-                    <button type="submit" class="btn btn-outline-primary btn-sm" [disabled]="!replyForm.valid">
-                      <i class="fa fa-reply"></i> 返信
-                    </button>
+                  <div class="mb-3">
+                    <textarea class="form-control" formControlName="text" rows="3" placeholder="返信を入力..." maxlength="100" required></textarea>
+                    <div class="d-flex justify-content-between align-items-center mt-1">
+                      <div class="text-danger small">
+                        <span *ngIf="replyForm.get('text')?.errors?.['required'] && replyForm.get('text')?.touched">
+                          ＊返信が入力されていません
+                        </span>
+                        <span *ngIf="replyForm.get('text')?.errors?.['maxlength'] && replyForm.get('text')?.touched">
+                          ＊100文字以内で入力してください
+                        </span>
+                      </div>
+                      <small class="text-muted">
+                        {{replyForm.get('text')?.value?.length || 0}}/100文字
+                      </small>
+                    </div>
                   </div>
+                  <button type="submit" class="btn btn-primary btn-sm" [disabled]="!replyForm.valid || !replyForm.get('text')?.value?.trim()">
+                    <i class="fa fa-reply"></i> 返信
+                  </button>
                 </form>
               </div>
             </div>

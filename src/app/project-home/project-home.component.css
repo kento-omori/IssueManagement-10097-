@@ -4,3 +4,18 @@
   .shadow-hover:hover {
     box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
   }
+
+/* プロジェクト一覧の説明文のスタイル */
+.text-muted {
+  white-space: pre-line;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.5;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+/* 説明文の先頭の改行を削除 */
+.text-muted::first-line {
+  white-space: normal;
+}

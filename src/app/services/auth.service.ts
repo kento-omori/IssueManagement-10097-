@@ -5,6 +5,8 @@ import { UserService } from './user.service';
 import { NgZone } from '@angular/core';
 import { NavigationService } from './navigation.service';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { doc, updateDoc } from '@angular/fire/firestore';
+import { Firestore } from '@angular/fire/firestore';
 
 @Injectable({
   providedIn: 'root'
@@ -18,6 +20,7 @@ export class AuthService {
   private userService = inject(UserService);
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   authState$ = this.currentUserSubject.asObservable();
+  private firestore = inject(Firestore);
 
   constructor(
     private ngZone: NgZone,
@@ -77,40 +80,63 @@ export class AuthService {
         displayName: displayName
       });
 
-      // Firestoreにユーザープロフィールを保存
-      const userProfile = {
-        uid: user.uid,
-        email: user.email!,
-        displayName: displayName,
-        createdAt: new Date()
-      };
-      
-      await this.userService.createUserProfile(userProfile);
-
       // メール確認を送信
       await sendEmailVerification(user);
       
+      // メール確認が完了するまでログアウト
+      await signOut(this.auth);
+      
       this.router.navigate(['/verify-email']);
       return userCredential;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration error:', error);
-      throw error;
+      // Firebaseのエラーメッセージをより分かりやすく変換
+      if (error.code === 'auth/email-already-in-use') {
+        throw new Error('このメールアドレスは既に使用されています。');
+      } else if (error.code === 'auth/invalid-email') {
+        throw new Error('有効なメールアドレスを入力してください。');
+      } else if (error.code === 'auth/weak-password') {
+        throw new Error('パスワードは6文字以上20文字以下の英数字のみで入力してください。');
+      }
+      throw new Error('ユーザー登録に失敗しました。もう一度お試しください。');
     }
   }
  
   // メール確認状態を監視
   async checkEmailVerification(): Promise<boolean> {
-    return new Promise((resolve) => {
-      this.auth.onAuthStateChanged(async (user) => {
-        if (user) {
-          // ユーザーの確認状態を再取得
-          await user.reload();
-          resolve(user.emailVerified);
-        } else {
-          resolve(false);
+    try {
+      const user = this.auth.currentUser;
+      if (!user) {
+        console.log('ユーザーがログインしていません');
+        return false;
+      }
+
+      try {
+        // ユーザーの状態を再読み込み
+        await user.reload();
+      } catch (reloadError: any) {
+        if (reloadError.code === 'auth/network-request-failed') {
+          console.error('ネットワーク接続エラーが発生しました。インターネット接続を確認してください。');
+          throw new Error('インターネット接続を確認してください。');
         }
-      });
-    });
+        throw reloadError;
+      }
+      
+      // メール確認状態を確認
+      if (user.emailVerified) {
+        console.log('メール確認が完了しています');
+        return true;
+      } else {
+        console.log('メール確認が未完了です');
+        return false;
+      }
+    } catch (error: any) {
+      console.error('メール確認チェック中にエラーが発生しました:', error);
+      if (error.code === 'auth/network-request-failed') {
+        throw new Error('インターネット接続を確認してください。');
+      }
+      throw error;
+    }
   }
 
   // ログアウト
@@ -157,6 +183,35 @@ export class AuthService {
       await this.router.navigate(['/login']);
     } catch (error) {
       console.error('アカウント削除に失敗しました:', error);
+      throw error;
+    }
+  }
+
+  onAuthStateChanged() {
+    return new Observable<User | null>((subscriber) => {
+      return this.auth.onAuthStateChanged((user) => {
+        subscriber.next(user);
+      });
+    });
+  }
+
+  // ユーザ名の変更
+  async changeDisplayName(newDisplayName: string) {
+    const user = this.auth.currentUser;
+    if (!user) {
+      throw new Error('ユーザーがログインしていません');
+    }
+    try {
+      // Firebase Authのプロファイルを更新
+      await updateProfile(user, { displayName: newDisplayName });
+      
+      // Firestoreのユーザープロファイルも更新
+      const userDoc = doc(this.firestore, 'users', user.uid);
+      await updateDoc(userDoc, {
+        displayName: newDisplayName
+      });
+    } catch (error) {
+      console.error('ユーザー名の更新に失敗しました:', error);
       throw error;
     }
   }

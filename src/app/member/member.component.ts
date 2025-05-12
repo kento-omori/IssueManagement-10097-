@@ -234,7 +234,7 @@ export class MemberComponent implements OnInit {
     } catch (error) {
       this.isAdding = false;
       this.isSuccess = false;
-      this.addOwnerMessage = '追加に失敗しました。';
+      this.addOwnerMessage = '追加に失敗しました。オーナー権限が必要です。';
       console.error('addOwner error:', error);
     }
   }

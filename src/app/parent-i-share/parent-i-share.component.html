@@ -12,35 +12,38 @@
       <form #spaceForm="ngForm" (ngSubmit)="addSharingSpace()" novalidate>
         <div class="row g-2 align-items-start">
           <div class="col-5">
-            <input
-              type="text"
+            <textarea
               [(ngModel)]="newSpaceTitle"
               name="title"
               class="form-control"
-              placeholder="新しいスペースのタイトル"
+              placeholder="新しいスペースのタイトル（2文字以上20文字以内で作成）"
               required
               minlength="2"
               maxlength="20"
               #titleRef="ngModel"
-            >
+              style="height: 4.5rem; resize: none;"
+              (keydown)="preventNewline($event)"
+            ></textarea>
             <div style="min-height: 1.5em;">
               <span *ngIf="titleRef.invalid && (titleRef.dirty || titleRef.touched)" class="text-danger small">
                 <span *ngIf="titleRef.errors?.['required']">タイトルは必須です。</span>
                 <span *ngIf="titleRef.errors?.['minlength']">2文字以上20文字以内で入力してください。</span>
+                <span *ngIf="titleRef.errors?.['maxlength']">20文字以内で入力してください。</span>
               </span>
             </div>
           </div>
           <div class="col-5">
-            <input
-              type="text"
+            <textarea
               [(ngModel)]="newSpaceDescription"
               name="description"
               class="form-control"
-              placeholder="新しいスペースの説明"
+              placeholder="新しいスペースの説明（100文字以内で作成）"
               required
               maxlength="100"
               #descRef="ngModel"
-            >
+              rows="2"
+              style="resize: none; height: 4.5rem;"
+            ></textarea>
             <div style="min-height: 1.5em;">
               <span *ngIf="descRef.invalid && (descRef.dirty || descRef.touched)" class="text-danger small">
                 <span *ngIf="descRef.errors?.['required']">説明は必須です。</span>
@@ -49,7 +52,12 @@
             </div>
           </div>
           <div class="col-2 d-grid">
-            <button class="btn btn-primary w-100" type="submit" [disabled]="spaceForm.invalid" style="height: 100%;">
+            <button 
+              class="btn btn-primary w-100" 
+              type="submit" 
+              [disabled]="spaceForm.invalid || !newSpaceDescription.trim()" 
+              style="height: 4.5rem;"
+            >
               <i class="fa fa-plus me-1"></i>新規作成
             </button>
           </div>

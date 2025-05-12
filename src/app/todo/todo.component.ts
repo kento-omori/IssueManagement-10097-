@@ -12,6 +12,8 @@ import { DragDropModule } from '@angular/cdk/drag-drop';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { RouterModule } from '@angular/router';
 import { Timestamp } from '@angular/fire/firestore';
+import { ToastrService } from 'ngx-toastr';
+
 @Component({
   selector: 'app-todo',
   standalone: true,
@@ -39,11 +41,11 @@ export class TodoComponent implements OnInit, OnDestroy {
   // フォームグループ
   todoForm: FormGroup = new FormGroup({
     id: new FormControl({value: null, disabled: true}),
-    text: new FormControl('', [Validators.required]),
-    category: new FormControl('', [Validators.required]),
+    text: new FormControl('', [Validators.required, this.noWhitespaceValidator]),
+    category: new FormControl('', [Validators.required, this.noWhitespaceValidator]),
     start_date: new FormControl(new Date().toISOString().split('T')[0], [Validators.required]),
     end_date: new FormControl('', [Validators.required]),
-    assignee: new FormControl('', [Validators.required]),
+    assignee: new FormControl('', [Validators.required, this.noWhitespaceValidator]),
     status: new FormControl('', [Validators.required]),
     priority: new FormControl('', [Validators.required])
   }, {
@@ -58,12 +60,18 @@ export class TodoComponent implements OnInit, OnDestroy {
 
   // コメントフォームグループ
   commentForm: FormGroup = new FormGroup({
-    text: new FormControl('', [Validators.required])
+    text: new FormControl('', [
+      Validators.required,
+      Validators.maxLength(100)
+    ])
   });
 
   // 返信フォームグループ
   replyForm: FormGroup = new FormGroup({
-    text: new FormControl('', [Validators.required])
+    text: new FormControl('', [
+      Validators.required,
+      Validators.maxLength(100)
+    ])
   });
 
   // フィルターの初期値
@@ -103,17 +111,24 @@ export class TodoComponent implements OnInit, OnDestroy {
     progress: 0
   };
 
+  // 現在のワークスペースの種類を保持
+  private currentWorkspace: 'personal' | 'shared' = 'personal';
+
   // コンストラクター
   constructor(
     private authService: AuthService,
     private todoFirestoreService: TodoFirestoreService,
-    private idManagerService: IdManagerService
+    private idManagerService: IdManagerService,
+    private toastr: ToastrService
   ) {
     this.initializeForm();
   }
 
   // 初期化
   ngOnInit(): void {
+    // 現在のワークスペースの種類を取得
+    this.currentWorkspace = this.todoFirestoreService.isPersonalWorkspace() ? 'personal' : 'shared';
+    
     // 保存されていたフィルター状態を復元
     this.loadFiltersFromLocalStorage();
 
@@ -142,14 +157,20 @@ export class TodoComponent implements OnInit, OnDestroy {
         const maxId = Math.max(...todos.map(todo => todo.id));
         this.idManagerService.setCurrentId(maxId);
 
-        // カスタムフィールドの情報を取得
+        // カスタムフィールドの情報を取得（最初のTodoから取得）
         const firstTodo = todos[0];
         if (firstTodo.customFields && firstTodo.customFields.length > 0) {
-          this.customFields = firstTodo.customFields;
+          // 既存のカスタムフィールドをクリア
+          this.customFields = [];
+          // 新しいカスタムフィールドを設定
+          this.customFields = [...firstTodo.customFields];
+          
           // フィルターにカスタムフィールドを追加
           this.customFields.forEach(field => {
+            if (!this.filters[`custom_${field.id}`]) {
             this.filters[`custom_${field.id}`] = '';
             this.filters[`custom_${field.id}_sort`] = 'none';
+            }
           });
         }
       }
@@ -167,11 +188,11 @@ export class TodoComponent implements OnInit, OnDestroy {
   private initializeForm(): void {
     this.todoForm = new FormGroup({
       id: new FormControl({value: this.getNextAvailableId(), disabled: true}),
-      text: new FormControl('', [Validators.required]),
-      category: new FormControl('', [Validators.required]),
+      text: new FormControl('', [Validators.required, this.noWhitespaceValidator]),
+      category: new FormControl('', [Validators.required, this.noWhitespaceValidator]),
       start_date: new FormControl(new Date().toISOString().split('T')[0], [Validators.required]),
       end_date: new FormControl('', [Validators.required]),
-      assignee: new FormControl('', [Validators.required]),
+      assignee: new FormControl('', [Validators.required, this.noWhitespaceValidator]),
       status: new FormControl('', [Validators.required]),
       priority: new FormControl('', [Validators.required])
     }, {
@@ -189,10 +210,14 @@ export class TodoComponent implements OnInit, OnDestroy {
       // ステータスやID管理も更新
       delete this.previousStatus[todos.id];
       this.idManagerService.deleteId(todos.id);
-      // フォームのID値を更新
-      this.todoForm.patchValue({
-        id: this.getNextAvailableId()
-      });
+      
+      // 使用済みIDの配列を更新
+      this.usedIds = this.todos.map(todo => todo.id);
+      
+      // 次の未使用番号を取得してフォームに設定
+      const nextId = this.getNextAvailableId();
+      this.todoForm.patchValue({ id: nextId });
+      
       // フィルタリングを適用して画面を即時更新
       this.applyFilters();
       // 削除IDを記録
@@ -299,9 +324,19 @@ export class TodoComponent implements OnInit, OnDestroy {
       // 保存していた前回のステータスを復元
       todo.status = this.previousStatus[todo.id] || '未着手';
       this.todoFirestoreService.updateTodo(todo.dbid!, { completed: todo.completed, status: todo.status });
-    };
-    this.applyFilters(); // ステータス変更後にフィルタリングを適用
-  };
+    }
+
+    // フィルタリングが適用されている場合のみ、フィルターを再適用
+    if (this.isFiltered()) {
+      this.applyFilters();
+    } else {
+      // フィルタリングが適用されていない場合は、完了状態の変更のみを反映
+      const index = this.filteredTodos.findIndex(t => t.dbid === todo.dbid);
+      if (index !== -1) {
+        this.filteredTodos[index] = { ...todo };
+      }
+    }
+  }
 
   // 日付比較のカスタムバリデーター
   private dateComparisonValidator(group: AbstractControl): ValidationErrors | null {
@@ -316,6 +351,14 @@ export class TodoComponent implements OnInit, OnDestroy {
       }
     }
     return null;  // 日付が正しい場合はnullを返す
+  }
+
+  // スペースのみの入力をチェックするカスタムバリデーター
+  private noWhitespaceValidator(control: AbstractControl): ValidationErrors | null {
+    if (control.value && control.value.trim().length === 0) {
+      return { whitespace: true };
+    }
+    return null;
   }
 
   // 管理番号の変更を監視
@@ -348,8 +391,19 @@ export class TodoComponent implements OnInit, OnDestroy {
   // 次の未使用の管理番号を取得
   private getNextAvailableId(): number {
     let nextId = 1;
-    while (this.usedIds.includes(nextId)) {
+    while (this.usedIds.includes(nextId) && nextId < 999) {
       nextId++;
+    }
+    if (nextId >= 999) {
+      // 999に達した場合は、使用されていない最小のIDを探す
+      for (let i = 1; i <= 999; i++) {
+        if (!this.usedIds.includes(i)) {
+          return i;
+        }
+      }
+      // 999まで全て使用されている場合は、エラーメッセージを表示
+      alert('管理番号が999に達しました。古いタスクを削除してから新しいタスクを作成してください。');
+      return 999;
     }
     return nextId;
   }
@@ -357,6 +411,12 @@ export class TodoComponent implements OnInit, OnDestroy {
   // カスタムフィールド追加
   addCustomField(): void {
     if (this.customFieldForm.valid) {
+      if (this.customFields.length >= 4) {
+        this.toastr.warning('カスタムフィールドは4つまでしか追加できません。');
+        this.customFieldForm.reset({ type: 'text' });
+        return;
+      }
+
       const fieldName = this.customFieldForm.get('name')?.value;
       const fieldType = this.customFieldForm.get('type')?.value;
       const newField: CustomField = {
@@ -365,19 +425,39 @@ export class TodoComponent implements OnInit, OnDestroy {
         type: fieldType,
         value: ''
       };     
+
+      // 既存のTodoにカスタムフィールドを追加（一括更新）
+      const updatePromises = this.todos.map(async (todo) => {
+        if (todo.dbid) {
+          todo.customFields = todo.customFields || [];
+          // 重複チェック
+          if (!todo.customFields.some(field => field.id === newField.id)) {
+            todo.customFields.push(newField);
+            await this.todoFirestoreService.updateTodo(todo.dbid, { customFields: todo.customFields });
+          }
+        }
+      });
+      
+      // すべての更新が完了するのを待つ
+      Promise.all(updatePromises).then(() => {
+        // 更新成功後にローカルの状態を更新
       this.customFields.push(newField);
-      // フォームにカスタムフィールドを追加
       this.todoForm.addControl(`custom_${newField.id}`, new FormControl(''));
-      // フィルターにカスタムフィールドを追加
       this.filters[`custom_${newField.id}`] = '';
       this.filters[`custom_${newField.id}_sort`] = 'none';      
+        // フォームをリセット
+        this.customFieldForm.reset({ type: 'text' });
+        // フォームの状態をリセット（エラー表示などもクリア）
+        this.customFieldForm.markAsPristine();
+        this.customFieldForm.markAsUntouched();
+        this.toastr.success('カスタムフィールドを追加しました。');
+      }).catch(error => {
+        console.error('カスタムフィールドの更新中にエラーが発生しました:', error);
+        this.toastr.error('カスタムフィールドの更新に失敗しました。');
+        // エラー時もフォームをリセット
       this.customFieldForm.reset({ type: 'text' });
-      // 既存のTodoにカスタムフィールドを追加
-      this.todos.forEach(async (todo) => {
-        todo.customFields = todo.customFields || [];
-        todo.customFields.push(newField);
-        // Firestoreにも反映
-        await this.todoFirestoreService.updateTodo(todo.dbid!, { customFields: todo.customFields });
+        this.customFieldForm.markAsPristine();
+        this.customFieldForm.markAsUntouched();
       });
     }
   }
@@ -752,12 +832,14 @@ export class TodoComponent implements OnInit, OnDestroy {
 
   // フィルター状態を保存
   private saveFiltersToLocalStorage(): void {
-    localStorage.setItem('todoFilters', JSON.stringify(this.filters));
+    const storageKey = `todo_filters_${this.currentWorkspace}`;
+    localStorage.setItem(storageKey, JSON.stringify(this.filters));
   }
 
   // フィルター状態を復元
   private loadFiltersFromLocalStorage(): void {
-    const savedFilters = localStorage.getItem('todoFilters');
+    const storageKey = `todo_filters_${this.currentWorkspace}`;
+    const savedFilters = localStorage.getItem(storageKey);
     if (savedFilters) {
       this.filters = JSON.parse(savedFilters);
     }
@@ -794,6 +876,9 @@ export class TodoComponent implements OnInit, OnDestroy {
     this.todoFirestoreService.goGanttChart();
   }
 
+  isFiltered(): boolean {
+    return this.filteredTodos.length > 0;
+  }
 
 }
 

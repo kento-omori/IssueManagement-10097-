@@ -28,7 +28,7 @@
                          権限：
                          <span *ngIf="member.isAdmin" class="role-label admin-label">管理者</span>
                          <span *ngIf="member.isOwner" class="role-label owner-label">オーナー</span>
-                         <span *ngIf="!member.isAdmin && !member.isOwner" class="role-label">なし</span>
+                         <span *ngIf="!member.isAdmin && !member.isOwner" class="role-label text-body-tertiary">なし</span>
                     </p>
                 </div>
             </div>
@@ -222,7 +222,7 @@
         <button
           type="submit"
           class="btn btn-success"
-          [disabled]="!selectedOwnerUser || isAdding"
+          [disabled]="!selectedOwnerUser || isAdding || selectedOwnerUser.isOwner"
         >
           オーナー権限を追加
         </button>

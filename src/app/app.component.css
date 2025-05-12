@@ -1,14 +1,17 @@
 .notification-banner {
   position: fixed;
-  top: 56px; /* ナビゲーションバーの高さ分下げる */
-  left: 0;
-  right: 0;
-  background-color: #007bff;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #4CAF50;
   color: white;
   padding: 10px 20px;
-  text-align: center;
+  border-radius: 4px;
   z-index: 1000;
-  animation: slideDown 0.3s ease-out;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  max-width: 80%;
+  margin: 0 auto;
+  text-align: center;
 }
 
 @keyframes slideDown {
@@ -24,13 +27,12 @@
   position: absolute;
   top: 100%;
   right: 0;
-  width: 350px;
+  z-index: 1000;
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
+  min-width: 300px;
   margin-top: 10px;
-  animation: fadeIn 0.2s ease-out;
 }
 
 /* 通知許可ポップアップ用の特別なスタイル */
@@ -45,6 +47,7 @@
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   animation: fadeIn 0.3s ease-out;
+  z-index: 1000;
 }
 
 @keyframes fadeIn {
@@ -69,4 +72,33 @@
   border-left: 8px solid transparent;
   border-right: 8px solid transparent;
   border-bottom: 8px solid white;
+}
+
+/* スクロールバーのスタイル */
+.notification-popup::-webkit-scrollbar {
+  width: 8px;
+}
+
+.notification-popup::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.notification-popup::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.notification-popup::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
 }

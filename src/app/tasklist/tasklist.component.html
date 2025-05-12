@@ -52,7 +52,7 @@
       </div>
     </form>
     <br>
-    <table class="table" cdkDropList (cdkDropListDropped)="drop($event)" [cdkDropListDisabled]="isSearchFiltered()">
+    <table class="table" cdkDropList (cdkDropListDropped)="drop($event)" [cdkDropListDisabled]="isFiltered()">
       
     <!-- テーブルヘッダー -->
     <thead class="table-primary fw-bold" style="text-align: center;">
@@ -180,22 +180,22 @@
     </thead>
     <!-- タスクリスト -->
     <tbody style="text-align: center; vertical-align: middle;">
-      <tr *ngFor="let taskList of filteredTaskLists" 
-          [ngClass]="{'table-secondary': taskList.completed}"
+      <tr *ngFor="let task of filteredTaskLists" 
+          [ngClass]="{'table-secondary': task.completed}"
           cdkDrag
-          [cdkDragDisabled]="isSearchFiltered()">
-        <td class="col-3" style="text-align: left;">{{taskList.title}}</td>
-        <td class="col-1" >{{taskList.date}}</td>
-        <td class="col-1" >{{taskList.time}}</td>
-        <td class="col-4" style="text-align: left;">{{taskList.memo}}</td>
+          [cdkDragDisabled]="isFiltered()">
+        <td class="col-3" style="text-align: left;">{{task.title}}</td>
+        <td class="col-1" >{{task.date}}</td>
+        <td class="col-1" >{{task.time}}</td>
+        <td class="col-4" style="text-align: left;">{{task.memo}}</td>
         <td class="col-1" >
-            <input type="checkbox" (change)="changeStatus(taskList)" [checked]="taskList.completed">
+            <input type="checkbox" (change)="changeStatus(task)" [checked]="task.completed">
         </td>
         <td class="col-1" >
-            <button type="button" class="btn btn-outline-primary btn-sm" (click)="editTask(taskList)">編集</button>
+            <button type="button" class="btn btn-outline-primary btn-sm" (click)="editTask(task)">編集</button>
         </td>
         <td class="col-1" >
-            <button type="button" class="btn btn-outline-danger btn-sm" (click)="deleteTask(taskList)">削除</button>
+            <button type="button" class="btn btn-outline-danger btn-sm" (click)="deleteTask(task)">削除</button>
         </td>
       </tr>
     </tbody>

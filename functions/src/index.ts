@@ -62,24 +62,23 @@ export const sendNotificationOnTaskAssigned = onDocumentWritten(
     }
 
     // 2. 通知メッセージを作成
-    const payload = {
+    const projectId = event.params.projectId;  // ドキュメントパスからプロジェクトIDを取得
+    const projectRef = admin.firestore().collection('projects').doc(projectId);
+    const projectDoc = await projectRef.get();
+    const projectName = projectDoc.exists ? projectDoc.data()?.title : '不明なプロジェクト';
+
+    const message = {
+      tokens: tokens,
       notification: {
         title: '新しいタスクが割り当てられました！',
-        body: `${assignee}さん、プロジェクト「${todoDataAfter.projectName}」のタスク「${todoDataAfter.text}」が割り当てられました。`,
-        icon: 'public/text_kadai.png',
-        click_action: 'projects/{projectId}/todos/{todoId}'
+        body: `${assignee}さん、プロジェクト「${projectName}」のタスク「${todoDataAfter.text}」が割り当てられました。`
       }
-      // data: { ... } // 必要ならここに追加
     };
 
     // 3. トークン宛に通知を送信
     const tokensToRemove: string[] = [];
     try {
-      const multicastMessage = {
-        tokens: tokens,
-        notification: payload.notification
-      };
-      const response = await messaging.sendEachForMulticast(multicastMessage);
+      const response = await messaging.sendEachForMulticast(message);
       console.log('通知を送信しました:', response);
       response.responses.forEach((result, index) => {
         const error = result.error;
@@ -111,12 +110,10 @@ async function cleanupInvalidTokens(userId: string, tokensToRemove: string[]) {
   console.log('無効なトークンを削除しました:', tokensToRemove);
 }
 
-
-
 /** 毎日午前9時に実行され、期限が翌日のタスクを担当者に通知する**/
 export const sendDeadlineReminderNotifications = onSchedule(
   {
-    schedule: 'every day 09:00',
+    schedule: 'every 1 minutes',  // テスト用に1分ごとに実行
     timeZone: 'Asia/Tokyo',
     region: 'asia-northeast1'
   },
@@ -151,6 +148,15 @@ export const sendDeadlineReminderNotifications = onSchedule(
       const assignee = task.assignee;
       if (!assignee) continue;
 
+      // プロジェクトIDを取得（ドキュメントパスから）
+      const projectId = task.ref.parent.parent?.id;
+      if (!projectId) continue;
+
+      // プロジェクト名を取得
+      const projectRef = admin.firestore().collection('projects').doc(projectId);
+      const projectDoc = await projectRef.get();
+      const projectName = projectDoc.exists ? projectDoc.data()?.title : '不明なプロジェクト';
+
       const userQuery = await db.collection('users').where('displayName', '==', assignee).get();
       if (userQuery.empty) continue;
 
@@ -158,25 +164,32 @@ export const sendDeadlineReminderNotifications = onSchedule(
       const userData = userDoc.data();
       if (!userData) continue;
       const displayName = userData.displayName || '名前未設定';  // displayNameがない場合のフォールバック
-      const tokens = userData.fcmTokens;
-      if (!tokens || tokens.length === 0) continue;
+      
+      // FCMトークンの取得方法を修正
+      const tokensSnapshot = await db.collection('users').doc(userDoc.id).collection('fcmTokens').get();
+      if (tokensSnapshot.empty) {
+        console.log(`ユーザー ${displayName} さんのFCMトークンが見つかりません。`);
+        continue;
+      }
+      const tokens = tokensSnapshot.docs.map(doc => doc.data().token).filter(token => token);
+      if (tokens.length === 0) {
+        console.log(`ユーザー ${displayName} さんの有効なFCMトークンがありません。`);
+        continue;
+      }
 
       const tokensToRemove: string[] = [];
 
-      const payload = {
+      const reminderMessage = {
+        tokens: tokens,
         notification: {
           title: 'タスクの期限が迫っています！',
-          body: `${displayName}さん、タスク「${task.text}」の期限は翌日です。`,
-        },
+          body: `${displayName}さん、プロジェクト「${projectName}」のタスク「${task.text}」の期限は翌日です。`
+        }
       };
 
       try {
         console.log(`ユーザー ${displayName} さんのタスク「${task.text}」の期限前日通知を送信します。`);
-        const multicastMessage = {
-          tokens: tokens,
-          notification: payload.notification
-        };
-        const response = await messaging.sendEachForMulticast(multicastMessage);
+        const response = await messaging.sendEachForMulticast(reminderMessage);
         response.responses.forEach((result, index) => {
           const error = result.error;
           if (error) {
@@ -201,7 +214,7 @@ export const sendDeadlineReminderNotifications = onSchedule(
 // 期限当日通知
 export const sendTodayDeadlineNotifications = onSchedule(
   {
-    schedule: 'every day 09:00',
+    schedule: 'every 1 minutes',  // テスト用に1分ごとに実行
     timeZone: 'Asia/Tokyo',
     region: 'asia-northeast1'
   },
@@ -236,6 +249,15 @@ export const sendTodayDeadlineNotifications = onSchedule(
       const assignee = task.assignee;
       if (!assignee) continue;
 
+      // プロジェクトIDを取得（ドキュメントパスから）
+      const projectId = task.ref.parent.parent?.id;
+      if (!projectId) continue;
+
+      // プロジェクト名を取得
+      const projectRef = admin.firestore().collection('projects').doc(projectId);
+      const projectDoc = await projectRef.get();
+      const projectName = projectDoc.exists ? projectDoc.data()?.title : '不明なプロジェクト';
+
       const userQuery = await db.collection('users').where('displayName', '==', assignee).get();
       if (userQuery.empty) continue;
 
@@ -243,24 +265,32 @@ export const sendTodayDeadlineNotifications = onSchedule(
       const userData = userDoc.data();
       if (!userData) continue;
       const displayName = userData.displayName || '名前未設定';  // displayNameがない場合のフォールバック
-      const tokens = userData.fcmTokens;
-      if (!tokens || tokens.length === 0) continue;
+      
+      // FCMトークンの取得方法を修正
+      const tokensSnapshot = await db.collection('users').doc(userDoc.id).collection('fcmTokens').get();
+      if (tokensSnapshot.empty) {
+        console.log(`ユーザー ${displayName} さんのFCMトークンが見つかりません。`);
+        continue;
+      }
+      const tokens = tokensSnapshot.docs.map(doc => doc.data().token).filter(token => token);
+      if (tokens.length === 0) {
+        console.log(`ユーザー ${displayName} さんの有効なFCMトークンがありません。`);
+        continue;
+      }
 
-      const payload = {
+      const tokensToRemove: string[] = [];
+
+      const todayMessage = {
+        tokens: tokens,
         notification: {
           title: 'タスクの期限が今日です！',
-          body: `${displayName}さん、タスク「${task.text}」の期限は本日です。`,
+          body: `${displayName}さん、プロジェクト「${projectName}」のタスク「${task.text}」の期限は本日です。`
         }
       };
 
-      const tokensToRemove: string[] = [];
       try {
         console.log(`ユーザー ${displayName} さんのタスク「${task.text}」の期限当日通知を送信します。`);
-        const multicastMessage = {
-          tokens: tokens,
-          notification: payload.notification
-        };
-        const response = await messaging.sendEachForMulticast(multicastMessage);
+        const response = await messaging.sendEachForMulticast(todayMessage);
         response.responses.forEach((result, index) => {
           const error = result.error;
           if (error) {

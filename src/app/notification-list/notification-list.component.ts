@@ -16,6 +16,7 @@ export class NotificationListComponent implements OnInit {
   @Output() notificationClick = new EventEmitter<NotificationData>();
   @Output() markAllAsRead = new EventEmitter<void>();
   permissionGranted = false;
+  hasRequested = false;  // 通知の許可を要求したかどうか
 
   constructor(
     private messagingService: MessagingService,
@@ -26,9 +27,12 @@ export class NotificationListComponent implements OnInit {
     this.checkPermission();
   }
 
-  // 通知が許可されているかNgOnInItで確認するロジック
+  // 通知が許可されているか確認するロジック
   private checkPermission() {
-    this.permissionGranted = Notification.permission === 'granted';
+    const permission = Notification.permission;
+    this.hasRequested = permission !== 'default';
+    this.permissionGranted = permission === 'granted';
+    console.log('通知の許可状態:', permission);
   }
 
   // 通知許可（通知を有効にするボタンを押したとき発火）
@@ -42,21 +46,25 @@ export class NotificationListComponent implements OnInit {
 
       // ブラウザの通知許可ダイアログを表示
       const permission = await Notification.requestPermission();
+      this.hasRequested = true;
+      
       if (permission === 'granted') {
-        await this.messagingService.requestPermissionAndSaveToken(userId);
-        this.permissionGranted = true;
-        console.log('通知許可状態:', this.permissionGranted);
+      await this.messagingService.requestPermissionAndSaveToken(userId);
+      this.permissionGranted = true;
+        console.log('通知が許可されました');
       } else {
-        console.log('通知が許可されませんでした:', permission);
         this.permissionGranted = false;
-        alert('通知の設定を変更するには、ブラウザの通知の設定を変更してください：\n\n' +
-              '設定を変更後、ページを再読み込みしてください。');
+        console.log('通知が許可されませんでした:', permission);
+        alert('通知の設定を変更するには、ブラウザで通知設定を行ってください：\n\n' +
+              '1. ブラウザの設定から通知を許可してください\n' +
+              '2. 設定を変更後、このページを再読み込みしてください');
       }
     } catch (error) {
       console.error('通知の許可に失敗しました:', error);
       this.permissionGranted = false;
-      alert('通知の設定を変更するには、ブラウザの通知の設定を変更してください：\n\n' +
-            '設定を変更後、ページを再読み込みしてください。');
+      alert('通知の設定を変更するには、ブラウザで通知設定を行ってください：\n\n' +
+            '1. ブラウザの設定から通知を許可してください\n' +
+            '2. 設定を変更後、このページを再読み込みしてください');
     }
   }
 
@@ -69,31 +77,23 @@ export class NotificationListComponent implements OnInit {
         return;
       }
 
-      // 通知の許可状態をリセット
-      if ('permissions' in navigator && 'revoke' in (navigator as any).permissions) {
-        try {
-          await (navigator as any).permissions.revoke({ name: 'notifications' });
-          console.log('通知の許可状態をリセットしました');
-        } catch (revokeError) {
-          console.error('通知の許可状態のリセットに失敗しました:', revokeError);
-        }
+      const currentPermission = Notification.permission;
+      console.log('現在の通知の許可状態:', currentPermission);
+
+      if (currentPermission === 'granted') {
+        // 通知の設定を変更するようにユーザーに案内
+        alert('通知の設定を変更するには、ブラウザで通知設定を行ってください：\n\n' +
+              '1. ブラウザの設定を開く\n' +
+              '2. 通知設定を「ブロック」に変更\n' +
+              '3. 設定を変更後、このページを再読み込みしてください\n\n' +
+              '※設定を変更しない場合、通知は引き続き受信されます');
+
+        // トークンの削除は行わない（ブラウザの設定変更後に再読み込みで処理）
+        console.log('通知設定の変更を待機中...');
       } else {
-        console.log('このブラウザでは通知の許可状態のリセットがサポートされていません');
-        alert('通知の設定を変更するには、ブラウザの通知の設定を変更してください：\n\n' +
-              '設定を変更後、ページを再読み込みしてください。');
+        console.log('通知は既に無効化されています');
       }
 
-      // 通知の許可状態をdefaultに戻す
-      try {
-        await Notification.requestPermission();
-        console.log('通知の許可状態をdefaultに戻しました');
-      } catch (error) {
-        console.error('通知の許可状態のリセットに失敗しました:', error);
-      }
-
-      await this.messagingService.revokePermission(userId);
-      this.permissionGranted = false;
-      console.log('通知許可状態:', this.permissionGranted);
     } catch (error) {
       console.error('通知の無効化に失敗しました:', error);
     }
@@ -102,5 +102,15 @@ export class NotificationListComponent implements OnInit {
   // ベルマークをクリックしたときの処理
   onNotificationClick(notification: NotificationData) {
     this.notificationClick.emit(notification);
+  }
+
+  // すべての通知を既読にする
+  onMarkAllAsRead() {
+    try {
+      this.markAllAsRead.emit();
+      console.log('markAllAsReadイベントを発火しました');
+    } catch (error) {
+      console.error('markAllAsReadイベントの発火に失敗しました:', error);
+    }
   }
 }

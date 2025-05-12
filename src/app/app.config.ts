@@ -8,8 +8,8 @@ import { provideStorage, getStorage, connectStorageEmulator } from '@angular/fir
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { provideMessaging, getMessaging } from '@angular/fire/messaging';
 import { provideFunctions, getFunctions, connectFunctionsEmulator } from '@angular/fire/functions';
-// import { provideAnalytics, getAnalytics } from '@angular/fire/analytics';
-// import { ScreenTrackingService, UserTrackingService } from '@angular/fire/analytics';
+import { provideToastr } from 'ngx-toastr';
+import { provideAnimations } from '@angular/platform-browser/animations';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCwgWS2A4T-TtIN7mM1cdJeP6FoLYlvGBE",
@@ -25,6 +25,12 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }), 
     provideRouter(routes),
+    provideAnimations(),
+    provideToastr({
+      timeOut: 3000,
+      positionClass: 'toast-top-right',
+      preventDuplicates: true,
+    }),
     provideFirebaseApp(() => {
       const app = initializeApp(firebaseConfig);
       
@@ -52,8 +58,5 @@ export const appConfig: ApplicationConfig = {
     provideCharts(withDefaultRegisterables()),
     provideMessaging(() => getMessaging()),
     provideFunctions(() => getFunctions()),
-    // provideAnalytics(() => getAnalytics()),
-    // ScreenTrackingService,
-    // UserTrackingService,
   ]
 };

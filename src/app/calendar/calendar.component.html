@@ -13,20 +13,23 @@
 <!-- 新規イベント追加フォーム -->
 <div *ngIf="showEventForm" class="event-form">
   <h3>新規予定の追加</h3>
-  <form (ngSubmit)="addEvent()">
+  <form #newEventForm="ngForm" (ngSubmit)="addEvent()">
     <div>
       <label for="title">タイトル:</label>
       <input type="text" id="title" [(ngModel)]="newEvent.title" name="title" required>
     </div>
     <div>
       <label for="start">開始日:</label>
-      <input type="date" id="start" [(ngModel)]="newEvent.start" name="start" required>
+      <input type="date" id="start" [(ngModel)]="newEvent.start" name="start" required #startDate="ngModel">
     </div>
     <div>
       <label for="end">終了日:</label>
-      <input type="date" id="end" [(ngModel)]="newEvent.end" name="end" required>
+      <input type="date" id="end" [(ngModel)]="newEvent.end" name="end" required #endDate="ngModel">
+      <div *ngIf="endDate.value && startDate.value && endDate.value < startDate.value" class="text-danger">
+        終了日は開始日より後の日付を選択してください。
+      </div>
     </div>
-    <button type="submit">追加</button>
+    <button type="submit" [disabled]="newEventForm.invalid || (endDate.value && startDate.value && endDate.value < startDate.value)">追加</button>
     <button type="button" (click)="showEventForm = false">キャンセル</button>
   </form>
 </div>
@@ -34,20 +37,23 @@
 <!-- Todoイベント編集フォーム -->
 <div *ngIf="showEditForm && editingTodoEvent" class="event-form">
   <h3>予定の編集</h3>
-  <form (ngSubmit)="updateEvent()">
+  <form #editTodoForm="ngForm" (ngSubmit)="updateEvent()">
     <div>
       <label for="edit-title">タイトル:</label>
       <input type="text" id="edit-title" [(ngModel)]="editingTodoEvent.text" name="title" required>
     </div>
     <div>
       <label for="edit-start">開始日:</label>
-      <input type="date" id="edit-start" [(ngModel)]="editingTodoEvent.start_date" name="start" required>
+      <input type="date" id="edit-start" [(ngModel)]="editingTodoEvent.start_date" name="start" required #editTodoStart="ngModel">
     </div>
     <div>
       <label for="edit-end">終了日:</label>
-      <input type="date" id="edit-end" [(ngModel)]="editingTodoEvent.end_date" name="end" required>
+      <input type="date" id="edit-end" [(ngModel)]="editingTodoEvent.end_date" name="end" required #editTodoEnd="ngModel">
+      <div *ngIf="editTodoEnd.value && editTodoStart.value && editTodoEnd.value < editTodoStart.value" class="text-danger">
+        終了日は開始日より後の日付を選択してください。
+      </div>
     </div>
-    <button type="submit">更新</button>
+    <button type="submit" [disabled]="editTodoForm.invalid || (editTodoEnd.value && editTodoStart.value && editTodoEnd.value < editTodoStart.value)">更新</button>
     <button type="button" class="delete-btn" (click)="deleteEvent(editingTodoEvent.dbid!); showEditForm = false">削除</button>
     <button type="button" (click)="showEditForm = false">キャンセル</button>
   </form>
@@ -56,20 +62,23 @@
 <!-- カレンダーイベント編集フォーム -->
 <div *ngIf="showEditForm && editingCalendarEvent" class="event-form">
   <h3>予定の編集</h3>
-  <form (ngSubmit)="updateEvent()">
+  <form #editCalendarForm="ngForm" (ngSubmit)="updateEvent()">
     <div>
       <label for="edit-calendar-title">タイトル:</label>
       <input type="text" id="edit-calendar-title" [(ngModel)]="editingCalendarEvent.title" name="title" required>
     </div>
     <div>
       <label for="edit-calendar-start">開始日:</label>
-      <input type="date" id="edit-calendar-start" [(ngModel)]="editingCalendarEvent.start" name="start" required>
+      <input type="date" id="edit-calendar-start" [(ngModel)]="editingCalendarEvent.start" name="start" required #editCalendarStart="ngModel">
     </div>
     <div>
       <label for="edit-calendar-end">終了日:</label>
-      <input type="date" id="edit-calendar-end" [(ngModel)]="editingCalendarEvent.end" name="end" required>
+      <input type="date" id="edit-calendar-end" [(ngModel)]="editingCalendarEvent.end" name="end" required #editCalendarEnd="ngModel">
+      <div *ngIf="editCalendarEnd.value && editCalendarStart.value && editCalendarEnd.value < editCalendarStart.value" class="text-danger">
+        終了日は開始日より後の日付を選択してください。
+      </div>
     </div>
-    <button type="submit">更新</button>
+    <button type="submit" [disabled]="editCalendarForm.invalid || (editCalendarEnd.value && editCalendarStart.value && editCalendarEnd.value < editCalendarStart.value)">更新</button>
     <button type="button" class="delete-btn" (click)="deleteEvent(editingCalendarEvent.id!); showEditForm = false">削除</button>
     <button type="button" (click)="showEditForm = false">キャンセル</button>
   </form>

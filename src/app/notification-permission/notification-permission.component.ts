@@ -1,4 +1,4 @@
-import { Component, OnInit, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, Output, EventEmitter, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MessagingService } from '../services/messaging.service';
 import { AuthService } from '../services/auth.service';
@@ -11,10 +11,11 @@ import { AuthService } from '../services/auth.service';
   styleUrls: ['./notification-permission.component.css']
 })
 export class NotificationPermissionComponent implements OnInit {
+  @Input() permissionGranted = false;
+  @Input() hasRequested = false;
   @Output() permissionRequested = new EventEmitter<void>();
   @Output() permissionRevoked = new EventEmitter<void>();
-  permissionGranted = false;
-  hasRequested = false;
+  isLoading = false;  // ローディング状態を追加
 
   constructor(
     private messagingService: MessagingService,
@@ -35,6 +36,7 @@ export class NotificationPermissionComponent implements OnInit {
   }
 
   async requestPermission() {
+    this.isLoading = true;  // ローディング開始
     try {
       const userId = this.authService.getCurrentUserId();
       if (!userId) {
@@ -55,10 +57,13 @@ export class NotificationPermissionComponent implements OnInit {
       console.error('通知の許可に失敗しました:', error);
       this.permissionGranted = false;
       this.hasRequested = false;
+    } finally {
+      this.isLoading = false;  // ローディング終了
     }
   }
 
   async revokePermission() {
+    this.isLoading = true;  // ローディング開始
     try {
       const userId = this.authService.getCurrentUserId();
       if (!userId) {
@@ -81,6 +86,8 @@ export class NotificationPermissionComponent implements OnInit {
       console.error('通知の無効化に失敗しました:', error);
       this.permissionGranted = false;
       this.hasRequested = false;  // エラー時のみfalseに設定
+    } finally {
+      this.isLoading = false;  // ローディング終了
     }
   }
 }

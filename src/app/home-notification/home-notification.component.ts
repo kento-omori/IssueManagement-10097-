@@ -109,9 +109,11 @@ export class HomeNotificationComponent implements OnInit {
         this.router.navigate([`/users/${userId}/todo`]);
       } else if (todo.pjid) {
         // プロジェクトTODO
-        console.log('goTodo todo:', todo.pjid);
-        this.router.navigate([`/projects/${todo.pjid}/todo`]);
-        console.log([`/projects/${todo.pjid}/todo`]);
+        this.navigationService.setSelectedProjectId(todo.pjid);
+        // 少し待ってから遷移
+        setTimeout(() => {
+          this.router.navigate([`/projects/${todo.pjid}/todo`]);
+        }, 100);
       }
     }
 }

@@ -4,3 +4,62 @@
   .shadow-hover:hover {
     box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
   }
+
+/* フォームのスタイル */
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+/* プレースホルダーのスタイル */
+::placeholder {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.75rem;
+}
+
+/* 入力フィールドのスタイル */
+.form-control {
+  position: relative;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  line-height: 1.2;
+}
+
+/* 高さが4.5remの入力フィールド用のスタイル */
+.form-control[style*="height: 4.5rem"] {
+  padding-top: 0.5rem;
+  display: block;
+}
+
+/* 入力テキストのスタイル */
+input.form-control {
+  padding-top: 0.5rem;
+  line-height: 1.2;
+  display: block;
+  text-align: left;
+}
+
+/* フォームグループのスタイル */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* 説明入力欄のスタイル */
+textarea.form-control {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* スペース一覧の説明文のスタイル */
+.card-text {
+  white-space: pre-line;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.5;
+  margin-top: 0;
+  padding-top: 0;
+}

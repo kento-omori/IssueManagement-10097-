@@ -1,5 +1,5 @@
 import { Component, ElementRef, AfterViewInit, ViewChild, OnDestroy, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators,ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormControl, AbstractControl, ValidationErrors } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { gantt } from 'dhtmlx-gantt';
 import { IdManagerService } from '../services/id-manager.service';
@@ -23,6 +23,8 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
   tasks: Todo[] | null = null;
   formMode: 'new' | 'edit' | 'switched' = 'new';  // フォームのモードを管理
   formModeMessage: string = '';  // モードメッセージを管理
+  private isPopupVisible: boolean = false;  // クラスプロパティとして移動
+  private popupTimeout: any;  // ポップアップのタイムアウト管理用
 
   constructor(
     private idManagerService: IdManagerService,
@@ -34,16 +36,28 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
 
   private createForm(): FormGroup {
     return this.fb.group({
-      id: ['', Validators.required],  // 管理番号を入力可能に変更
-      text: ['', Validators.required],
-      category: ['', Validators.required],
-      start_date: [new Date().toISOString().split('T')[0], Validators.required],
-      end_date: ['', Validators.required],
-      assignee: ['', Validators.required],
-      status: ['未着手', Validators.required],
-      priority: ['普通', Validators.required],
+      id: ['', [Validators.required, Validators.min(1), Validators.max(999)]],
+      text: ['', [Validators.required, this.noWhitespaceValidator]],
+      category: ['', [Validators.required, this.noWhitespaceValidator]],
+      start_date: [new Date().toISOString().split('T')[0], [Validators.required]],
+      end_date: ['', [Validators.required]],
+      assignee: ['', [Validators.required, this.noWhitespaceValidator]],
+      status: ['未着手', [Validators.required]],
+      priority: ['普通', [Validators.required]],
       progress: [0, [Validators.required, Validators.min(0), Validators.max(100)]]
+    }, {
+      validators: this.dateComparisonValidator
     });
+  }
+
+  private dateComparisonValidator(form: FormGroup) {
+    const startDate = new Date(form.get('start_date')?.value);
+    const endDate = new Date(form.get('end_date')?.value);
+
+    if (startDate > endDate) {
+      return { dateComparison: true };
+    }
+    return null;
   }
 
   private initForm() {
@@ -117,22 +131,30 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
   }
 
   private resizeHandler = () => {
-    gantt.setSizes();
+    if (gantt.$container) {
+      gantt.setSizes();
+      // スケールの再計算
+      gantt.render();
+    }
   };
 
   ngAfterViewInit() {
-
     gantt.config.date_format = "%Y-%m-%d";
     gantt.config.scale_height = 50;
     gantt.config.min_column_width = 40;
-    gantt.config.autosize = false; // サイズを自動で調整しない（項目の幅のこと）
+    gantt.config.autosize = true; // サイズを自動で調整する
     gantt.config.scroll_size = 20;
     gantt.config.drag_progress = false;     // 進捗率の編集を無効化（△のバーをドラッグして進捗率を変更できる）
     gantt.config.drag_move = true;          // タスクバーの移動を有効化
     gantt.config.drag_resize = true;        // タスクバーのリサイズを有効化
     gantt.config.row_height = 36; // 行の高さを明示的に指定
     gantt.config.order_branch = true;
-    gantt.config.show_links = true;  // 依存関係の表示を有効化
+    gantt.config.show_links = true;
+    gantt.config.fit_tasks = true; // タスクに合わせて表示を調整
+    gantt.config.auto_scheduling = false; // 自動スケジューリングを無効化
+    gantt.config.auto_scheduling_strict = false; // 厳密な自動スケジューリングを無効化
+    gantt.config.work_time = false; // 稼働時間の表示を無効化
+    gantt.config.skip_off_time = false; // 休業時間のスキップを無効化
     gantt.config.scales = [
       { unit: "month", step: 1, format: "%Y年%m月" }, //小文字のMにすると、月の表示が01月になる。大文字だと、英語表記
       { unit: "day", step: 1, format: "%j" }
@@ -340,10 +362,17 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
         return d > max ? d : max;
       }, new Date(tasks[0].end_date));
 
-      // スケール範囲を明示的に指定
-      gantt.config.start_date = new Date(minStartDate.getTime() - 7 * 24 * 60 * 60 * 1000);
-      gantt.config.end_date = new Date(maxEndDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-      gantt.config.fit_tasks = false;
+      // 表示期間の調整（常に前後に4日間の余裕を確保）
+      let startDate = new Date(minStartDate);
+      let endDate = new Date(maxEndDate);
+      
+      // 開始日から4日前
+      startDate.setDate(startDate.getDate() - 4);
+      // 終了日から4日後
+      endDate.setDate(endDate.getDate() + 4);
+
+      gantt.config.start_date = startDate;
+      gantt.config.end_date = endDate;
 
       // 全てのタスクのend_dateを+1日する
       const fixedTasks = tasks.map(task => {
@@ -403,67 +432,83 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
     });
        
     // ダブルクリックでタスク情報のポップアップを表示
-    let isPopupVisible = false;  // ポップアップの表示状態を管理
-
-    // クリックイベントでポップアップを閉じる
     gantt.attachEvent("onEmptyClick", () => {
-      if (isPopupVisible) {
-        gantt.message.hide("");
-        isPopupVisible = false;
-      }
+      this.closePopup();
       return true;
     });
 
     gantt.attachEvent("onTaskDblClick", (id: string, e: any) => {
-      // 既存のポップアップがあれば閉じる
-      if (isPopupVisible) {
-        gantt.message.hide("");
-        isPopupVisible = false;
-        return false;
-      }
-      const task = gantt.getTask(id);      
-      // 日付のフォーマット
-      const formatDate = (dateStr: string) => {
-        const date = new Date(dateStr);
-        const yyyy = date.getFullYear();
-        const mm = ('0' + (date.getMonth() + 1)).slice(-2);
-        const dd = ('0' + date.getDate()).slice(-2);
-        return `${yyyy}-${mm}-${dd}`;
-      };
-      // 日付の処理
-      const startDate = String(task['start_date']);
-      const endDateStr = String(task['end_date']);
-      const endDate = new Date(endDateStr);
-      endDate.setDate(endDate.getDate() - 1);
-      const html = `
-        <div class="task-info-popup">
-          <h3>${task['text']}</h3>
-          <p><span class="label">管理番号:</span> ${task['id']}</p>
-          <p><span class="label">カテゴリ:</span> ${task['category']}</p>
-          <p><span class="label">開始日:</span> ${formatDate(startDate)}</p>
-          <p><span class="label">期限:</span> ${formatDate(endDate.toISOString())}</p>
-          <p><span class="label">担当者:</span> ${task['assignee']}</p>
-          <p><span class="label">ステータス:</span> ${task['status']}</p>
-          <p><span class="label">優先度:</span> ${task['priority']}</p>
-          <p><span class="label">進捗率:</span> ${Math.round((task['progress'] || 0) * 100)}%</p>
-        </div>
-      `;
+      // e.preventDefault();  // イベントの伝播を停止
+      // e.stopPropagation();  // イベントの伝播を停止
 
-      gantt.message({
-        text: html,
-        expire: -1,  // ポップアップを自動で閉じない
-        type: "info"
-      });      
-      isPopupVisible = true;
-      return false; // デフォルトの編集フォームを表示しない
+      // // 既存のポップアップがあれば閉じる
+      // this.closePopup();
+
+      // const task = gantt.getTask(id);
+      // if (!task) return false;
+
+      // // 日付のフォーマット
+      // const formatDate = (dateStr: string) => {
+      //   const date = new Date(dateStr);
+      //   const yyyy = date.getFullYear();
+      //   const mm = ('0' + (date.getMonth() + 1)).slice(-2);
+      //   const dd = ('0' + date.getDate()).slice(-2);
+      //   return `${yyyy}-${mm}-${dd}`;
+      // };
+
+      // // 日付の処理
+      // const startDate = String(task['start_date']);
+      // const endDateStr = String(task['end_date']);
+      // const endDate = new Date(endDateStr);
+      // endDate.setDate(endDate.getDate() - 1);
+
+      // const html = `
+      //   <div class="task-info-popup">
+      //     <h3>${task['text']}</h3>
+      //     <p><span class="label">管理番号:</span> ${task['id']}</p>
+      //     <p><span class="label">カテゴリ:</span> ${task['category']}</p>
+      //     <p><span class="label">開始日:</span> ${formatDate(startDate)}</p>
+      //     <p><span class="label">期限:</span> ${formatDate(endDate.toISOString())}</p>
+      //     <p><span class="label">担当者:</span> ${task['assignee']}</p>
+      //     <p><span class="label">ステータス:</span> ${task['status']}</p>
+      //     <p><span class="label">優先度:</span> ${task['priority']}</p>
+      //     <p><span class="label">進捗率:</span> ${Math.round((task['progress'] || 0) * 100)}%</p>
+      //   </div>
+      // `;
+
+      // gantt.message({
+      //   text: html,
+      //   expire: -1,
+      //   type: "info"
+      // });
+
+      // this.isPopupVisible = true;
+      return false;
     });
 
+    // タスククリックイベント
     gantt.attachEvent("onTaskClick", (id: string, e: any) => {
+      // e.preventDefault();
+      // e.stopPropagation();
       return false;
     });
     
+    // リサイズイベントの処理を改善
+    const resizeObserver = new ResizeObserver(() => {
+      this.resizeHandler();
+    });
+    
+    if (this.ganttChart.nativeElement) {
+      resizeObserver.observe(this.ganttChart.nativeElement);
+    }
+
+    // ウィンドウのリサイズイベントも監視
     window.addEventListener('resize', this.resizeHandler);
-    setTimeout(() => gantt.setSizes(), 100);
+    
+    // 初期サイズの設定
+    setTimeout(() => {
+      this.resizeHandler();
+    }, 100);
 
     // リンク追加時
     gantt.attachEvent("onAfterLinkAdd", async (id: string, link: any) => {
@@ -532,7 +577,12 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
   }
 
   ngOnDestroy() {
+    this.closePopup();  // コンポーネント破棄時にポップアップを閉じる
     window.removeEventListener('resize', this.resizeHandler);
+    if (this.ganttChart?.nativeElement) {
+      const resizeObserver = new ResizeObserver(() => {});
+      resizeObserver.unobserve(this.ganttChart.nativeElement);
+    }
   }
 
   // ngOnInitではinitForm()だけ呼ぶ
@@ -546,5 +596,25 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
 
   goTodo() {
     this.todoFirestoreService.goTodo();
+  }
+
+  // ポップアップを閉じるメソッド
+  private closePopup() {
+    if (this.isPopupVisible) {
+      gantt.message.hide("");
+      this.isPopupVisible = false;
+    }
+    if (this.popupTimeout) {
+      clearTimeout(this.popupTimeout);
+      this.popupTimeout = null;
+    }
+  }
+
+  // スペースのみの入力をチェックするカスタムバリデーター
+  private noWhitespaceValidator(control: AbstractControl): ValidationErrors | null {
+    if (control.value && control.value.trim().length === 0) {
+      return { whitespace: true };
+    }
+    return null;
   }
 } 

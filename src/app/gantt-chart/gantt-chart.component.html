@@ -1,7 +1,7 @@
 <div class="container-fluid">
   <div class="row align-items-center">
     <span class="col-auto justify-content-start">
-      <h5>新規作成・編集フォーム</h5>
+      <h5>新規作成・編集フォーム（管理番号から入力してください）</h5>
     </span>
     <span class="col-auto justify-content-end mt-1 ms-auto" >
       <a class="btn btn-outline-primary col-auto" (click)="goDashboad()">ダッシュボード</a>
@@ -22,26 +22,34 @@
     <div class="row g-3">
       <div class="col-1 form-group">
         <label for="ganttId" class="form-label mb-0">管理番号</label>
-        <input id="ganttId" formControlName="id" type="number" class="form-control" placeholder="管理番号" min="1"  required>
+        <input id="ganttId" formControlName="id" type="number" class="form-control" placeholder="管理番号" min="1" max="999" required>
         <div class="validation-message">
           <div *ngIf="taskForm.get('id')?.invalid && taskForm.get('id')?.touched" class="text-danger small">
-            <span *ngIf="taskForm.get('id')?.errors?.['required']">入力されていません</span>
+            <span *ngIf="taskForm.get('id')?.errors?.['required']">＊管理番号が入力されていません</span>
+            <span *ngIf="taskForm.get('id')?.errors?.['min']">1以上の数字を入力してください</span>
+            <span *ngIf="taskForm.get('id')?.errors?.['max']">999以下の数字を入力してください</span>
           </div>
         </div>
       </div>
       <div class="col-2 form-group">
         <label for="ganttTitle" class="form-label mb-0">タイトル</label>
-        <input id="ganttTitle" formControlName="text" type="text" class="form-control" placeholder="タイトル" required>
-        <div class="validation-message">
-          <div *ngIf="taskForm.get('text')?.invalid && taskForm.get('text')?.touched" class="text-danger small">
-            <span *ngIf="taskForm.get('text')?.errors?.['required']">入力されていません</span>
-          </div>
+        <input id="ganttTitle" formControlName="text" type="text" class="form-control" placeholder="タイトル" required [ngClass]="{'is-invalid': taskForm.get('text')?.invalid && taskForm.get('text')?.touched}" >
+        <div class="invalid-feedback" *ngIf="taskForm.get('text')?.errors?.['required'] && taskForm.get('text')?.touched">
+          ＊タイトルが入力されていません
+        </div>
+        <div class="invalid-feedback" *ngIf="taskForm.get('text')?.errors?.['whitespace'] && taskForm.get('text')?.touched">
+          ＊スペースのみの入力はできません
         </div>
       </div>
       <div class="col-2 form-group">
         <label for="ganttCategory" class="form-label mb-0">カテゴリ</label>
-        <input id="ganttCategory" formControlName="category" type="text" class="form-control" placeholder="カテゴリ">
-        <div class="validation-message"></div>
+        <input id="ganttCategory" formControlName="category" type="text" class="form-control" placeholder="カテゴリ" required [ngClass]="{'is-invalid': taskForm.get('category')?.invalid && taskForm.get('category')?.touched}" >
+        <div class="invalid-feedback" *ngIf="taskForm.get('category')?.errors?.['required'] && taskForm.get('category')?.touched">
+          ＊カテゴリが入力されていません
+        </div>
+        <div class="invalid-feedback" *ngIf="taskForm.get('category')?.errors?.['whitespace'] && taskForm.get('category')?.touched">
+          ＊スペースのみの入力はできません
+        </div>
       </div>
       <div class="col-1 form-group">
         <label for="ganttStart" class="form-label mb-0">開始日</label>
@@ -59,12 +67,20 @@
           <div *ngIf="taskForm.get('end_date')?.invalid && taskForm.get('end_date')?.touched" class="text-danger small">
             <span *ngIf="taskForm.get('end_date')?.errors?.['required']">入力されていません</span>
           </div>
+          <div *ngIf="taskForm.errors?.['dateComparison'] && taskForm.get('end_date')?.touched" class="text-danger small">
+            ＊期限は開始日より後の日付を選択してください
+          </div>
         </div>
       </div>
-      <div class="col-1 form-group">
+      <div class="col-md-1">
         <label for="ganttAssignee" class="form-label mb-0">担当者</label>
-        <input id="ganttAssignee" formControlName="assignee" type="text" class="form-control" placeholder="担当者">
-        <div class="validation-message"></div>
+        <input type="text" class="form-control" id="ganttAssignee" formControlName="assignee" required [ngClass]="{'is-invalid': taskForm.get('assignee')?.invalid && taskForm.get('assignee')?.touched}" >
+        <div class="invalid-feedback" *ngIf="taskForm.get('assignee')?.errors?.['required'] && taskForm.get('assignee')?.touched">
+          ＊担当者が入力されていません
+        </div>
+        <div class="invalid-feedback" *ngIf="taskForm.get('assignee')?.errors?.['whitespace'] && taskForm.get('assignee')?.touched">
+          ＊スペースのみの入力はできません
+        </div>
       </div>
       <div class="col-1 form-group">
         <label for="ganttStatus" class="form-label mb-0">ステータス</label>
@@ -90,7 +106,7 @@
         <input id="ganttprogress" formControlName="progress" type="number" class="form-control" placeholder="進捗率" min="0" max="100" required>
         <div class="validation-message">
           <div *ngIf="taskForm.get('progress')?.invalid && taskForm.get('progress')?.touched" class="text-danger small">
-            <span *ngIf="taskForm.get('progress')?.errors?.['required']">入力されていません</span>
+            <span *ngIf="taskForm.get('progress')?.errors?.['required']">＊進捗率が入力されていません</span>
           </div>
         </div>
       </div>

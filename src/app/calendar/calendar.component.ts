@@ -123,11 +123,11 @@ export class CalendarComponent implements OnInit, OnDestroy {
         title: todo.text + '（' + todo.projectName + '）',
         start: todo.start_date,
         end: todo.end_date,
-        color: todo.pjid ? '#ffd700' : '#007bff' // プロジェクトは黄色, 個人は青
+        color: todo.pjid ? '#ffb6c1' : '#87ceeb' // プロジェクトは薄いピンク, 個人は薄い青
       })),
       ...this.calendarEvents.map(event => ({
         ...event,
-        color: '#28a745' // 緑
+        color: '#90ee90' // 薄い緑
       }))
     ];
 

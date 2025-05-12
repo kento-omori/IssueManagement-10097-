@@ -16,7 +16,7 @@
                             [(ngModel)]="newProjectTitle"
                             name="title"
                             class="form-control"
-                            placeholder="新しいプロジェクトのタイトル"
+                            placeholder="新しいプロジェクトのタイトル（2文字以上20文字以内）"
                             required
                             minlength="2"
                             maxlength="20"
@@ -36,7 +36,7 @@
                                 [(ngModel)]="newProjectDescription"
                                 name="description"
                                 class="form-control"
-                                placeholder="新しいプロジェクトの概要・説明"
+                                placeholder="新しいプロジェクトの概要・説明（500文字以内）"
                                 required
                                 maxlength="500"
                                 #descRef="ngModel"
@@ -50,7 +50,12 @@
                             </div>
                         </div>
                         <div class="col-2 d-grid">
-                            <button class="btn btn-primary w-100" type="submit" [disabled]="projectForm.invalid" style="height: 10em;">
+                            <button 
+                                class="btn btn-primary w-100" 
+                                type="submit" 
+                                [disabled]="projectForm.invalid || !newProjectDescription.trim()" 
+                                style="height: 10em;"
+                            >
                                 <i class="fa fa-plus me-1"></i>新規作成
                             </button>
                         </div>

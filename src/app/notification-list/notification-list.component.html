@@ -1,16 +1,22 @@
 <div class="notification-popup">
   <div *ngFor="let n of notifications" class="notification-item" [class.unread]="!n.read" (click)="onNotificationClick(n)">
-    <div class="fw-bold">{{ n.title }}</div>
+    <div class="fw-bold">
+      {{ n.title }}
+      <i *ngIf="!n.read" class="fa-solid fa-circle text-danger ms-2" style="font-size: 0.6rem;"></i>
+    </div>
     <div>{{ n.body }}</div>
     <div class="small text-secondary">{{ n.receivedAt | date:'yyyy/MM/dd HH:mm:ss' }}</div>
   </div>
   <div class="d-flex flex-column gap-2 mt-2">
-    <button class="btn btn-link" (click)="markAllAsRead.emit()">すべて既読にする</button>
-    <button *ngIf="!permissionGranted" class="btn btn-primary" (click)="requestPermission()">
+    <button class="btn btn-link" (click)="onMarkAllAsRead()">すべて既読にする</button>
+    <button *ngIf="!hasRequested" class="btn btn-primary" (click)="requestPermission()">
       通知を許可する
     </button>
-    <button *ngIf="permissionGranted" class="btn btn-outline-danger" (click)="revokePermission()">
+    <button *ngIf="hasRequested && permissionGranted" class="btn btn-outline-danger" (click)="revokePermission()">
       通知を無効にする
+    </button>
+    <button *ngIf="hasRequested && !permissionGranted" class="btn btn-primary" (click)="requestPermission()">
+      通知を許可する
     </button>
   </div>
 </div>

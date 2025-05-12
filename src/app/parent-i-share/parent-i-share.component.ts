@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { IShareFirestoreService } from '../services/ishare-firestore.service';
 import { Timestamp } from '@angular/fire/firestore';
+import { FormBuilder, Validators } from '@angular/forms';
 
 // スペースデータの型
 export interface SpaceData {
@@ -39,12 +40,21 @@ export class ParentIShareComponent implements OnInit {
   newSpaceTitle: string = '';
   newSpaceDescription: string = '';
   @ViewChild('spaceForm') spaceForm!: NgForm;
+  form: any;
 
-  constructor(private ishareFirestoreService: IShareFirestoreService) { }
+  constructor(private ishareFirestoreService: IShareFirestoreService, private fb: FormBuilder) { }
 
   ngOnInit(): void {
     this.ishareFirestoreService.getIShareSpaces().subscribe((spaces) => {
       this.ishareSpaces = spaces.sort((a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime());
+    });
+
+    this.form = this.fb.group({
+      title: ['', [
+        Validators.required,
+        Validators.minLength(2),
+        Validators.maxLength(20)
+      ]],
     });
   }
 
@@ -75,5 +85,12 @@ export class ParentIShareComponent implements OnInit {
   goIShare(spaceId: string): void {
     console.log(spaceId);
     this.ishareFirestoreService.goIShare(spaceId);
+  }
+
+  // 改行を防止するメソッド
+  preventNewline(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+    }
   }
 }

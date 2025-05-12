@@ -1,0 +1,43 @@
+parent-i-shareのhtml
+
+<router-outlet></router-outlet>
+<div class="container-fluid">
+    <div class="col-4">
+        <h2>情報共有スペース</h2>
+    </div>
+    <div class="row align-items-center">
+        <div class="col-2">
+            <input type="text" [(ngModel)]="newSpaceTitle" placeholder="新しいスペースのタイトル">
+        </div>
+        <div class="col-4">
+            <input type="text" [(ngModel)]="newSpaceDescription" placeholder="新しいスペースの説明">
+        </div>
+        <div class="col-2">
+            <button (click)="addSharingSpace()">新規作成</button>
+        </div>
+    </div>
+
+<hr>
+<div *ngFor="let space of ishareSpaces; let i = index">
+    <div class="row">
+        <div class="col-4">
+            <a [routerLink]="['/i-share', space.dbid]">
+                <button type="button" class="btn btn-primary rounded-3 col-4 btn-min-width-500">
+                    {{ space.title }}
+                </button>
+            </a>
+        </div>
+        <div class="card col-4">
+            <div class="card-body">
+                <p class="card-text">{{ space.description }}</p>
+            </div>
+        </div>
+        <div class="col-2">
+            <button (click)="deleteSharingSpace(space.dbid!)">削除</button>
+        </div>
+    </div>
+</div> 
+
+<div *ngIf="ishareSpaces.length === 0">
+  <h3>現在、表示する情報共有スペースはありません。</h3>
+</div>
