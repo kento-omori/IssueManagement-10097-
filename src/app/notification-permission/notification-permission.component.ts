@@ -15,79 +15,122 @@ export class NotificationPermissionComponent implements OnInit {
   @Input() hasRequested = false;
   @Output() permissionRequested = new EventEmitter<void>();
   @Output() permissionRevoked = new EventEmitter<void>();
-  isLoading = false;  // ローディング状態を追加
+  @Output() closed = new EventEmitter<void>();
+  isLoading = false;
+  errorMessage: string | null = null;
 
   constructor(
     private messagingService: MessagingService,
     private authService: AuthService
   ) {}
 
+  // 初期化
   ngOnInit() {
     this.checkPermission();
-  }
+  };
 
+  // 通知許可状態の確認
   private checkPermission() {
     this.permissionGranted = this.isPermissionGranted();
     this.hasRequested = Notification.permission !== 'default';
-  }
+  };
 
+  // 通知許可状態の確認
   isPermissionGranted(): boolean {
     return Notification.permission === 'granted';
   }
 
+  // 通知許可の要求
   async requestPermission() {
-    this.isLoading = true;  // ローディング開始
+    this.isLoading = true;
+    this.errorMessage = null;
     try {
       const userId = this.authService.getCurrentUserId();
       if (!userId) {
-        console.error('ユーザーIDが取得できません');
+        this.errorMessage = 'ユーザーIDが取得できません';
+        return;
+      };
+      const permissionPromise = Notification.requestPermission();
+      const timeoutPromise = new Promise<string>((_, reject) =>
+        setTimeout(() => reject(new Error('通知許可の応答がありません')), 5000)
+      );
+      const permission = await Promise.race([permissionPromise, timeoutPromise]);
+
+      if (permission !== 'granted') {
+        this.permissionGranted = false;
+        this.hasRequested = true;
+        this.errorMessage = '通知許可が得られませんでした。';
         return;
       }
+
       const token = await this.messagingService.requestPermissionAndSaveToken(userId);
       if (token) {
         this.permissionGranted = true;
         this.hasRequested = true;
         this.permissionRequested.emit();
       } else {
-        // FCMトークン取得に失敗した場合
         this.permissionGranted = false;
-        this.hasRequested = false;
+        this.hasRequested = true;
+        this.errorMessage = 'FCMトークンの取得に失敗しました。';
       }
-    } catch (error) {
-      console.error('通知の許可に失敗しました:', error);
+    } catch (error: any) {
       this.permissionGranted = false;
-      this.hasRequested = false;
+      this.hasRequested = true;
+      this.errorMessage = '通知が許可されませんでした。ブラウザの設定から許可を選択してください。: ' + (error.message || error);
+      if (error.message && error.message.includes('通知許可の応答がありません')) {
+        setTimeout(() => {
+          this.closed.emit();
+        }, 5000);
+      }
     } finally {
-      this.isLoading = false;  // ローディング終了
+      this.isLoading = false;
     }
   }
 
   async revokePermission() {
-    this.isLoading = true;  // ローディング開始
+    this.isLoading = true;
+    this.errorMessage = null;
     try {
       const userId = this.authService.getCurrentUserId();
       if (!userId) {
-        console.error('ユーザーIDが取得できません');
+        this.errorMessage = 'ユーザーIDが取得できません';
         return;
-      }
+      };
       await this.messagingService.revokePermission(userId);
-      // 通知の許可状態をリセット（ブラウザの設定をリセット）
-      if ('permissions' in navigator) {
-        try {
-          await (navigator as any).permissions.revoke({ name: 'notifications' });
-        } catch (revokeError) {
-          console.error('通知の許可状態のリセットに失敗しました:', revokeError);
-        }
-      }
+
+      const permissionPromise = Notification.requestPermission();
+      const timeoutPromise = new Promise<string>((_, reject) =>
+        setTimeout(() => reject(new Error('通知許可の応答がありません')), 5000)
+      );
+      const permission = await Promise.race([permissionPromise, timeoutPromise]);
+
+      if (permission === 'denied') {
+        this.errorMessage = '通知をブロックしました。';
+        return;
+      }else if (permission === 'granted') {
+        this.errorMessage = '通知を許可しました。';
+        await this.messagingService.requestPermissionAndSaveToken(userId)
+        return;
+      };
+
       this.permissionGranted = false;
-      this.hasRequested = true;  // ユーザーが明示的に無効化した場合はtrueのまま
+      this.hasRequested = true;
       this.permissionRevoked.emit();
-    } catch (error) {
-      console.error('通知の無効化に失敗しました:', error);
+    } catch (error: any) {
       this.permissionGranted = false;
-      this.hasRequested = false;  // エラー時のみfalseに設定
+      this.hasRequested = true;
+      this.errorMessage = '通知許可の解除に失敗しました。ブラウザの設定からブロックを選択してください。: ' + (error.message || error);
+      if (error.message && error.message.includes('通知許可の応答がありません')) {
+        setTimeout(() => {
+          this.closed.emit();
+        }, 5000);
+      }
     } finally {
-      this.isLoading = false;  // ローディング終了
+      this.isLoading = false;
     }
+  }
+
+  closeDialog() {
+    this.closed.emit();
   }
 }

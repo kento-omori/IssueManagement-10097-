@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../services/auth.service';
 import { FormsModule } from '@angular/forms';
@@ -15,6 +15,7 @@ import { NavigationService } from '../services/navigation.service';
   styleUrl: './i-share.component.css'
 })
 export class IShareComponent implements OnInit {
+  @ViewChild('commentList') commentList!: ElementRef;
   
   space: SpaceData | null = null;
   comments: Comment[] = [];
@@ -103,16 +104,31 @@ export class IShareComponent implements OnInit {
     this.fileUrl = null;
 
     // コメントリストを更新
-    this.ishareFirestoreService.getComments(this.space!.dbid!).subscribe(
-      (comments) => {
-        this.comments = comments;
-      }
-    );
+    this.updateComments(this.space!.dbid!);
   }
 
   // スペースを閉じる処理
   goParentIShare(): void {
     this.ishareFirestoreService.goParentIShare();
+  }
+
+  // コメントリストを更新
+  private updateComments(dbid: string) {
+    this.ishareFirestoreService.getComments(dbid).subscribe(
+      (comments: Comment[]) => {
+        this.comments = comments;
+        // コメントリスト更新後に最下部にスクロール
+        setTimeout(() => {
+          const element = this.commentList?.nativeElement;
+          if (element) {
+            element.scrollTop = element.scrollHeight;
+          }
+        }, 0);
+      },
+      (error) => {
+        console.error('コメント取得エラー:', error);
+      }
+    );
   }
 
   // 初期化
@@ -122,14 +138,7 @@ export class IShareComponent implements OnInit {
     this.ishareFirestoreService.getIShareSpaces().subscribe((spaces) => {
       this.space = spaces.find(space => space.dbid === dbid) || null;
     });
-    this.ishareFirestoreService.getComments(dbid).subscribe(
-      (comments: Comment[]) => {
-        this.comments = comments;
-      },
-      (error) => {
-        console.error('コメント取得エラー:', error);
-      }
-    );
+    this.updateComments(dbid);
   }
 
   // コメント削除時の処理
@@ -150,6 +159,10 @@ export class IShareComponent implements OnInit {
 
   // コメント編集時の処理
   onEditComment(comment: any) {
+    if (comment.user !== this.userName) {
+      console.warn('このコメントを編集する権限がありません');
+      return;
+    }
     this.editingCommentId = comment.id;
     this.commentText = comment.text;
     this.fileName = comment.fileName || null;
@@ -176,6 +189,12 @@ export class IShareComponent implements OnInit {
       const currentUser = await this.authService.getCurrentUser();
       if (!currentUser) {
         throw new Error('ユーザーが認証されていません');
+      }
+
+      // 編集権限のチェック
+      const commentToEdit = this.comments.find(c => c.id === this.editingCommentId);
+      if (!commentToEdit || commentToEdit.user !== this.userName) {
+        throw new Error('このコメントを編集する権限がありません');
       }
 
       let fileUrl = this.fileUrl;
@@ -212,11 +231,7 @@ export class IShareComponent implements OnInit {
       );
 
       // コメントリストを更新
-      this.ishareFirestoreService.getComments(this.space!.dbid!).subscribe(
-        (comments) => {
-          this.comments = comments;
-        }
-      );
+      this.updateComments(this.space!.dbid!);
 
       this.editingCommentId = null;
       this.commentText = '';

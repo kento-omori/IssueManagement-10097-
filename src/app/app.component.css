@@ -102,3 +102,22 @@
   background-color: rgba(0, 0, 0, 0.5);
   z-index: 999;
 }
+
+/* モバイル対応のスタイル */
+@media screen and (max-width: 768px) {
+  .user-info-popup {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 90vw !important;
+    max-width: 400px !important;
+    margin: 0 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  .user-info-popup::before {
+    display: none !important;
+  }
+}

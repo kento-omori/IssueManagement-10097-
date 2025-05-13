@@ -1,11 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ProjectFirestoreService } from '../services/project-firestore.service';
 import { NavigationService } from '../services/navigation.service';
 import { ProjectData, ProjectMember } from '../project-home/project-home.component';
 import { UserService } from '../services/user.service';
 import { FormsModule } from '@angular/forms';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-member',
@@ -14,7 +14,7 @@ import { firstValueFrom } from 'rxjs';
   templateUrl: './member.component.html',
   styleUrl: './member.component.css'
 })
-export class MemberComponent implements OnInit {
+export class MemberComponent implements OnInit, OnDestroy {
   project: ProjectData[] = [];
   projectMembers: ProjectMember[] = [];
   searchInput: string = '';
@@ -40,6 +40,7 @@ export class MemberComponent implements OnInit {
   removeMemberMessage: string = '';
   deleteProjectMessage: string = '';
   isDeletingProject: boolean = false;
+  private memberSubscription: Subscription | null = null;
 
   constructor(
     private projectFirestoreService: ProjectFirestoreService,
@@ -50,12 +51,31 @@ export class MemberComponent implements OnInit {
   ngOnInit(): void {
     const projectId = this.navigationService.selectedProjectIdSource.getValue();
     if (projectId) {
-      this.projectFirestoreService.getProjectMemberDetails(projectId).subscribe(memberDetails => {
-        this.projectMembers = memberDetails;
+      this.memberSubscription = this.projectFirestoreService.getProjectMemberDetails(projectId).subscribe({
+        next: (memberDetails) => {
+          this.projectMembers = memberDetails;
+          // 現在のユーザーがメンバーでなくなった場合、プロジェクト一覧に遷移
+          const currentUserId = this.navigationService.selectedUserIdSource.getValue();
+          if (currentUserId && !memberDetails.some(member => member.uid === currentUserId)) {
+            console.log('メンバーから削除されました。プロジェクト一覧に遷移します。');
+            this.projectFirestoreService.goProjectHome();
+          }
+        },
+        error: (error) => {
+          console.error('メンバー情報の取得に失敗しました:', error);
+          // エラーが発生した場合もプロジェクト一覧に遷移
+          this.projectFirestoreService.goProjectHome();
+        }
       });
     }
     // 管理者・オーナー権限チェック
     this.checkAdminAndOwner(projectId!);
+  }
+
+  ngOnDestroy(): void {
+    if (this.memberSubscription) {
+      this.memberSubscription.unsubscribe();
+    }
   }
 
   // ログインしているユーザーが管理者・オーナーかどうかを判定

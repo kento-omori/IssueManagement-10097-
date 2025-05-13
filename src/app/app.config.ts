@@ -34,22 +34,22 @@ export const appConfig: ApplicationConfig = {
     provideFirebaseApp(() => {
       const app = initializeApp(firebaseConfig);
       
-      // 開発環境の場合のみエミュレーターを接続
-      if (window.location.hostname === "localhost") {
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const storage = getStorage(app);
-        const functions = getFunctions(app, 'asia-northeast1');
+      // // 開発環境の場合のみエミュレーターを接続
+      // if (window.location.hostname === "localhost") {
+      //   const auth = getAuth(app);
+      //   const db = getFirestore(app);
+      //   const storage = getStorage(app);
+      //   const functions = getFunctions(app, 'asia-northeast1');
         
-        // Firestoreエミュレーターの接続
-        connectFirestoreEmulator(db, 'localhost', 8080);
-        // Authエミュレーターの接続
-        connectAuthEmulator(auth, 'http://localhost:9099');
-        // Storageエミュレーターの接続
-        connectStorageEmulator(storage, "localhost", 9199);
-        // Functionsエミュレーターの接続
-        connectFunctionsEmulator(functions, 'localhost', 5001);
-      }
+      //   // Firestoreエミュレーターの接続
+      //   connectFirestoreEmulator(db, 'localhost', 8080);
+      //   // Authエミュレーターの接続
+      //   connectAuthEmulator(auth, 'http://localhost:9099');
+      //   // Storageエミュレーターの接続
+      //   connectStorageEmulator(storage, "localhost", 9199);
+      //   // Functionsエミュレーターの接続
+      //   connectFunctionsEmulator(functions, 'localhost', 5001);
+      // }
       return app;
     }),
     provideAuth(() => getAuth()),

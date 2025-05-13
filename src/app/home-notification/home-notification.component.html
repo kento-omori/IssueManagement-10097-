@@ -9,7 +9,7 @@
     </ng-template>
 
     <div *ngIf="expiredNotification.length > 0; else expiredSpaces" class="row row-cols-12 g-4">
-        <div *ngFor="let todo of expiredNotification; let i = index" class="col-3">
+        <div *ngFor="let todo of expiredNotification; let i = index" class="col-md-3 col-sm-6 col-12">
             <div class="card h-100 shadow-hover border-5 border-danger-subtle">
                 <div class="card-body d-flex flex-column">
                     <h5 class="card-title text-danger">
@@ -45,7 +45,7 @@
     </ng-template>
 
     <div *ngIf="todayNotification.length > 0; else notodaySpaces" class="row row-cols-12 g-4">
-        <div *ngFor="let todo of todayNotification; let i = index" class="col-3">
+        <div *ngFor="let todo of todayNotification; let i = index" class="col-md-3 col-sm-6 col-12">
             <div class="card h-100 shadow-hover border-5 border-warning">
                 <div class="card-body d-flex flex-column">
                     <h5 class="card-title text-danger">
@@ -78,7 +78,7 @@
     </ng-template>
 
     <div *ngIf="weekNotification.length > 0; else noweekSpaces" class="row row-cols-12 g-4">
-        <div *ngFor="let todo of weekNotification; let i = index" class="col-3">
+        <div *ngFor="let todo of weekNotification; let i = index" class="col-md-3 col-sm-6 col-12">
             <div class="card h-100 shadow-hover border-5 border-success-subtle">
                 <div class="card-body d-flex flex-column">
                     <h5 class="card-title text-success">

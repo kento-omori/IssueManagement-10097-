@@ -65,26 +65,37 @@ export class MessagingService {
     try {
       if ('serviceWorker' in navigator) {
         console.log('Service Worker APIが利用可能です');
-        const registration = await navigator.serviceWorker.getRegistration();
-        if (registration) {
-          console.log('Service Worker登録情報:', registration);
+        // 既存の登録を確認
+        let registration = await navigator.serviceWorker.getRegistration();
+        
+        if (!registration) {
+          // 登録が存在しない場合は新規登録
+          registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+            scope: '/'
+          });
+          console.log('Service Worker新規登録:', registration);
+        }
+
           if (registration.active) {
             console.log('Service Workerがアクティブです:', registration.active);
             return registration;
           }
-          console.log('Service Workerがアクティブではありません。待機を開始します...');
+
           // Service Workerがactiveになるのを待つ
           return new Promise((resolve) => {
+          const timeout = setTimeout(() => {
+            console.log('Service Workerの待機がタイムアウトしました');
+            resolve(null);
+          }, 5000); // 5秒でタイムアウト
+
             registration.addEventListener('activate', (event) => {
+            clearTimeout(timeout);
               console.log('Service Workerがアクティブになりました:', event);
               resolve(registration);
             });
           });
         }
-        console.log('Service Workerの登録が見つかりません');
-      } else {
         console.log('Service Worker APIが利用できません');
-      }
       return null;
     } catch (error) {
       console.error('Service Workerの待機に失敗しました:', error);
@@ -114,32 +125,64 @@ export class MessagingService {
     }
   }
 
+  // 通知許可の状態を確認
+  async checkNotificationPermission(): Promise<boolean> {
+    if (!('Notification' in window)) {
+      return false;
+    }
+    return Notification.permission === 'granted';
+  }
+
   // 通知許可＋トークン取得＋Firestore保存
   async requestPermissionAndSaveToken(userId: string): Promise<string | null> {
     try {
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
-        try {
-          // Service Workerの登録完了を待つ
+      // 通知の許可状態を確認
+      if (!('Notification' in window)) {
+        console.log('このブラウザは通知をサポートしていません');
+        return null;
+      }
+
+      // Service Workerの登録を先に行う
           const registration = await this.waitForServiceWorker();
           if (!registration) {
-            console.error('Service Workerの登録が見つかりません');
-            // Service Workerが見つからない場合は通知の許可状態をリセット
-            await this.resetNotificationPermission();
+        console.error('Service Workerの登録に失敗しました');
             return null;
           }
 
+      // 既に通知が許可されている場合は、トークンのみを再取得
+      if (Notification.permission === 'granted') {
+        try {
         const token = await getToken(this.messaging, {
-          vapidKey: 'BIU0QUJMZ6xnF8yk9lUUnBOBjJQAgOrqqpf_uHLFo9NoZ72d9lEt0N6t0uPssnIt8Lc5jF0xmBEOpFKq62fKmiQ'
+            vapidKey: 'BIU0QUJMZ6xnF8yk9lUUnBOBjJQAgOrqqpf_uHLFo9NoZ72d9lEt0N6t0uPssnIt8Lc5jF0xmBEOpFKq62fKmiQ',
+            serviceWorkerRegistration: registration
         });
         await this.saveTokenToFirestore(userId, token);
+          // 通知許可の確認状態を保存
+          await this.savePermissionCheck(userId);
         return token;
         } catch (tokenError) {
           console.error('FCMトークンの取得に失敗しました:', tokenError);
-          // FCMトークン取得に失敗した場合、通知の許可状態をリセット
-          await this.revokePermission(userId);
-          await this.resetNotificationPermission();
           return null;
+        }
+      }
+
+      // 通知が許可されていない場合のみ、許可を求める
+      if (Notification.permission !== 'denied') {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          try {
+            const token = await getToken(this.messaging, {
+              vapidKey: 'BIU0QUJMZ6xnF8yk9lUUnBOBjJQAgOrqqpf_uHLFo9NoZ72d9lEt0N6t0uPssnIt8Lc5jF0xmBEOpFKq62fKmiQ',
+              serviceWorkerRegistration: registration
+            });
+            await this.saveTokenToFirestore(userId, token);
+            // 通知許可の確認状態を保存
+            await this.savePermissionCheck(userId);
+            return token;
+          } catch (tokenError) {
+            console.error('FCMトークンの取得に失敗しました:', tokenError);
+            return null;
+          }
         }
       }
       return null;
@@ -169,9 +212,17 @@ export class MessagingService {
     });
   }
 
+  // 通知リストをクリア
+  clearNotifications(): void {
+    this.notifications.next([]);
+  }
+
   // 通知拒否（通知を無効にするボタンを押したとき、その情報をFirestoreから削除）
   async revokePermission(userId: string): Promise<void> {
     try {
+      // 通知リストをクリア
+      this.clearNotifications();
+
       const deviceInfo = {
         userAgent: navigator.userAgent,
         platform: this.getPlatformFromUserAgent(navigator.userAgent),
@@ -228,6 +279,7 @@ export class MessagingService {
       };
       const deviceId = await this.findExistingDevice(userId, deviceInfo);
       if (!deviceId) return false;
+
       const docRef = doc(this.firestore, 'users', userId, 'fcmTokens', deviceId);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
@@ -277,7 +329,7 @@ export class MessagingService {
   }
 
   // 通知許可の確認状態をリセット
-  private async resetNotificationPermission(): Promise<void> {
+  async resetNotificationPermission(): Promise<void> {
     try {
       // 通知の許可状態をリセット（ブラウザの設定をリセット）
       if ('permissions' in navigator) {

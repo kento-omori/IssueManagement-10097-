@@ -20,69 +20,69 @@
       {{ formModeMessage }}
     </div>
     <div class="row g-3">
-      <div class="col-1 form-group">
+      <div class="col-4 col-md-1 form-group">
         <label for="ganttId" class="form-label mb-0">管理番号</label>
         <input id="ganttId" formControlName="id" type="number" class="form-control" placeholder="管理番号" min="1" max="999" required>
         <div class="validation-message">
           <div *ngIf="taskForm.get('id')?.invalid && taskForm.get('id')?.touched" class="text-danger small">
-            <span *ngIf="taskForm.get('id')?.errors?.['required']">＊管理番号が入力されていません</span>
-            <span *ngIf="taskForm.get('id')?.errors?.['min']">1以上の数字を入力してください</span>
-            <span *ngIf="taskForm.get('id')?.errors?.['max']">999以下の数字を入力してください</span>
+            <span *ngIf="taskForm.get('id')?.errors?.['required']">＊入力されていません</span>
+            <span *ngIf="taskForm.get('id')?.errors?.['min']">＊1以上の数字を入力してください</span>
+            <span *ngIf="taskForm.get('id')?.errors?.['max']">＊999以下の数字を入力してください</span>
           </div>
         </div>
       </div>
-      <div class="col-2 form-group">
+      <div class="col-4 col-md-2 form-group">
         <label for="ganttTitle" class="form-label mb-0">タイトル</label>
         <input id="ganttTitle" formControlName="text" type="text" class="form-control" placeholder="タイトル" required [ngClass]="{'is-invalid': taskForm.get('text')?.invalid && taskForm.get('text')?.touched}" >
         <div class="invalid-feedback" *ngIf="taskForm.get('text')?.errors?.['required'] && taskForm.get('text')?.touched">
-          ＊タイトルが入力されていません
-        </div>
+          ＊入力されていません
+          </div>
         <div class="invalid-feedback" *ngIf="taskForm.get('text')?.errors?.['whitespace'] && taskForm.get('text')?.touched">
-          ＊スペースのみの入力はできません
+          ＊スペースのみの入力不可
         </div>
       </div>
-      <div class="col-2 form-group">
+      <div class="col-4 col-md-2 form-group">
         <label for="ganttCategory" class="form-label mb-0">カテゴリ</label>
         <input id="ganttCategory" formControlName="category" type="text" class="form-control" placeholder="カテゴリ" required [ngClass]="{'is-invalid': taskForm.get('category')?.invalid && taskForm.get('category')?.touched}" >
         <div class="invalid-feedback" *ngIf="taskForm.get('category')?.errors?.['required'] && taskForm.get('category')?.touched">
-          ＊カテゴリが入力されていません
+          ＊入力されていません
         </div>
         <div class="invalid-feedback" *ngIf="taskForm.get('category')?.errors?.['whitespace'] && taskForm.get('category')?.touched">
-          ＊スペースのみの入力はできません
+          ＊スペースのみの入力不可
         </div>
       </div>
-      <div class="col-1 form-group">
+      <div class="col-4 col-md-1 form-group">
         <label for="ganttStart" class="form-label mb-0">開始日</label>
         <input id="ganttStart" formControlName="start_date" type="date" class="form-control" required>
         <div class="validation-message">
           <div *ngIf="taskForm.get('start_date')?.invalid && taskForm.get('start_date')?.touched" class="text-danger small">
-            <span *ngIf="taskForm.get('start_date')?.errors?.['required']">入力されていません</span>
+            <span *ngIf="taskForm.get('start_date')?.errors?.['required']">＊入力されていません</span>
           </div>
         </div>
       </div>
-      <div class="col-1 form-group">
+      <div class="col-4 col-md-1 form-group">
         <label for="ganttEnd" class="form-label mb-0">期限</label>
         <input id="ganttEnd" formControlName="end_date" type="date" class="form-control" required>
         <div class="validation-message">
           <div *ngIf="taskForm.get('end_date')?.invalid && taskForm.get('end_date')?.touched" class="text-danger small">
-            <span *ngIf="taskForm.get('end_date')?.errors?.['required']">入力されていません</span>
+            <span *ngIf="taskForm.get('end_date')?.errors?.['required']">＊入力されていません</span>
           </div>
           <div *ngIf="taskForm.errors?.['dateComparison'] && taskForm.get('end_date')?.touched" class="text-danger small">
-            ＊期限は開始日より後の日付を選択してください
+            ＊開始日より後の日付を選択してください
           </div>
         </div>
       </div>
-      <div class="col-md-1">
+      <div class="col-4 col-md-1 form-group">
         <label for="ganttAssignee" class="form-label mb-0">担当者</label>
         <input type="text" class="form-control" id="ganttAssignee" formControlName="assignee" required [ngClass]="{'is-invalid': taskForm.get('assignee')?.invalid && taskForm.get('assignee')?.touched}" >
         <div class="invalid-feedback" *ngIf="taskForm.get('assignee')?.errors?.['required'] && taskForm.get('assignee')?.touched">
-          ＊担当者が入力されていません
+          ＊入力されていません
         </div>
         <div class="invalid-feedback" *ngIf="taskForm.get('assignee')?.errors?.['whitespace'] && taskForm.get('assignee')?.touched">
-          ＊スペースのみの入力はできません
+          ＊スペースのみの入力不可
         </div>
       </div>
-      <div class="col-1 form-group">
+      <div class="col-4 col-md-1 form-group">
         <label for="ganttStatus" class="form-label mb-0">ステータス</label>
         <select id="ganttStatus" formControlName="status" class="form-select">
           <option value="未着手">未着手</option>
@@ -92,7 +92,7 @@
         </select>
         <div class="validation-message"></div>
       </div>
-      <div class="col-1 form-group">
+      <div class="col-4 col-md-1 form-group">
         <label for="ganttPriority" class="form-label mb-0">優先度</label>
         <select id="ganttPriority" formControlName="priority" class="form-select">
           <option value="高い">高い</option>
@@ -101,16 +101,16 @@
         </select>
         <div class="validation-message"></div>
       </div>
-      <div class="col-1 form-group">
+      <div class="col-4 col-md-1 form-group">
         <label for="ganttprogress" class="form-label mb-0">進捗率</label>
         <input id="ganttprogress" formControlName="progress" type="number" class="form-control" placeholder="進捗率" min="0" max="100" required>
         <div class="validation-message">
           <div *ngIf="taskForm.get('progress')?.invalid && taskForm.get('progress')?.touched" class="text-danger small">
-            <span *ngIf="taskForm.get('progress')?.errors?.['required']">＊進捗率が入力されていません</span>
+            <span *ngIf="taskForm.get('progress')?.errors?.['required']">＊入力されていません</span>
           </div>
         </div>
       </div>
-      <div class="col-1 d-flex align-items-start pt-4">
+      <div class="col-4 col-md-1 d-flex align-items-start pt-4">
         <button type="submit" class="btn btn-success" [disabled]="taskForm.invalid">
           <i class="fa fa-plus"></i>
         </button>

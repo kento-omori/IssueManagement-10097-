@@ -2,10 +2,15 @@
   <div class="notification-content">
     <h2 class="notification-title">プッシュ通知の許可</h2>
     <p class="notification-description">
-      新しい課題の作成や更新があった際に、プッシュ通知を受け取ることができます。
+      タスクの担当者に割り振られた際等に、プッシュ通知を受け取ることができます。
       通知を受け取るには、許可が必要です。
+      ブラウザの設定で「許可」または「ブロック」を選択してください。
     </p>
-    <div class="notification-buttons">
+    <div *ngIf="errorMessage" class="text-danger" style="margin-bottom: 1rem;">
+      {{ errorMessage }}
+      <button class="btn btn-secondary btn-sm" (click)="closeDialog()">閉じる</button>
+    </div>
+    <div class="notification-buttons" *ngIf="!errorMessage">
       <button class="notification-button allow-button" (click)="requestPermission()" [disabled]="isLoading">
         <span *ngIf="!isLoading">許可する</span>
         <span *ngIf="isLoading">処理中...</span>
@@ -20,6 +25,6 @@
 <div *ngIf="hasRequested && permissionGranted" class="text-success">
   通知が許可されました。
 </div>
-<div *ngIf="hasRequested && !permissionGranted" class="text-danger">
+<div *ngIf="hasRequested && !permissionGranted && !errorMessage" class="text-danger">
   通知が許可されませんでした。設定は、ベルマークからいつでも変更できます。
 </div>

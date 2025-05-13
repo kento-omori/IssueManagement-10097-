@@ -7,6 +7,7 @@ import { NavigationService } from './navigation.service';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { doc, updateDoc } from '@angular/fire/firestore';
 import { Firestore } from '@angular/fire/firestore';
+import { MessagingService } from './messaging.service';
 
 @Injectable({
   providedIn: 'root'
@@ -21,6 +22,7 @@ export class AuthService {
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   authState$ = this.currentUserSubject.asObservable();
   private firestore = inject(Firestore);
+  private messagingService = inject(MessagingService);
 
   constructor(
     private ngZone: NgZone,
@@ -45,11 +47,28 @@ export class AuthService {
   async login(email: string, password: string): Promise<void> {
     try {
       const userCredential = await signInWithEmailAndPassword(this.auth, email, password);
-      // ユーザープロフィールを取得
-      const userProfile = await this.userService.getUserProfile(userCredential.user.uid);
-      if (!userProfile) {
-        throw new Error('ユーザープロフィールの取得に失敗しました');
+      const user = userCredential.user;
+
+      // メール確認状態をチェック
+      if (!user.emailVerified) {
+        await signOut(this.auth);
+        throw new Error('メール確認が完了していません。メール内のリンクをクリックして確認を完了してください。');
       }
+
+      // ユーザープロフィールを取得
+      let userProfile = await this.userService.getUserProfile(user.uid);
+      
+      // プロフィールが存在しない場合は新規作成
+      if (!userProfile) {
+        userProfile = {
+          uid: user.uid,
+          email: user.email!,
+          displayName: user.displayName || '',
+          createdAt: new Date()
+        };
+        await this.userService.createUserProfile(userProfile);
+      }
+
       // NgZone内でナビゲーションを実行
       return new Promise<void>((resolve, reject) => {
         this.ngZone.run(async () => {
@@ -63,8 +82,13 @@ export class AuthService {
           }
         });
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('ログインエラー:', error);
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        throw new Error('メールアドレスまたはパスワードが正しくありません。');
+      } else if (error.code === 'auth/too-many-requests') {
+        throw new Error('ログイン試行回数が多すぎます。しばらく時間をおいてから再度お試しください。');
+      }
       throw error;
     }
   }
@@ -83,9 +107,7 @@ export class AuthService {
       // メール確認を送信
       await sendEmailVerification(user);
       
-      // メール確認が完了するまでログアウト
-      await signOut(this.auth);
-      
+      // メール確認画面に遷移（ログアウトせずに）
       this.router.navigate(['/verify-email']);
       return userCredential;
     } catch (error: any) {
@@ -114,9 +136,10 @@ export class AuthService {
       try {
         // ユーザーの状態を再読み込み
         await user.reload();
+        console.log('ユーザー状態の再読み込み完了');
       } catch (reloadError: any) {
+        console.error('ユーザー状態の再読み込みに失敗:', reloadError);
         if (reloadError.code === 'auth/network-request-failed') {
-          console.error('ネットワーク接続エラーが発生しました。インターネット接続を確認してください。');
           throw new Error('インターネット接続を確認してください。');
         }
         throw reloadError;
@@ -142,6 +165,11 @@ export class AuthService {
   // ログアウト
   async logout(): Promise<void> {
     try {
+      const currentUser = this.auth.currentUser;
+      if (currentUser) {
+        // 通知トークンのみを削除し、通知の許可状態は保持
+        await this.messagingService.revokePermission(currentUser.uid);
+      }
       await signOut(this.auth);
       await this.router.navigate(['/login']);
     } catch (error) {

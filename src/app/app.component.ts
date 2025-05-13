@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet,RouterLink,RouterLinkActive } from '@angular/router';
 import { AuthService } from './services/auth.service';
@@ -27,11 +27,12 @@ export class AppComponent implements OnInit, OnDestroy {
   notifications: NotificationData[] = [];
   unreadCount = 0;
   showNotificationPopup = false;
-  showPermissionPopup = false;
   showBanner = false;
   bannerNotification: NotificationData | null = null;
   private notificationSubscription: any;
   displayName: string = '';
+  showNotificationDialog = false;
+  hasRequested = false;
   
   constructor(
     public authService: AuthService,
@@ -63,7 +64,6 @@ export class AppComponent implements OnInit, OnDestroy {
     // 認証状態の変更を監視
     this.authService.onAuthStateChanged().subscribe(user => {
       if (user) {
-        console.log('ユーザーが認証されました:', user.uid);
         this.initializeNotifications();
         // 表示名を更新
         this.displayName = user.displayName || 'ゲスト';
@@ -105,14 +105,12 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private async initializeNotifications() {
     try {
-      console.log('通知の初期化を開始します');
       const registration = await this.registerServiceWorker();
       if (registration) {
         console.log('Service Worker登録成功:', registration);
         // Service Workerの登録が完了したら通知の設定を行う
         const userId = this.authService.getCurrentUserId();
         if (userId) {
-          console.log('userId:', userId);
           // 通知の許可状態に応じて処理を分岐
           switch (Notification.permission) {
             case 'granted':
@@ -161,12 +159,32 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
-  goHome() {
+  async goHome() {
+    const user = this.authService.getCurrentUser();
+    if (!user) {
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    // メール確認状態をチェック
+    try {
+      const isVerified = await this.authService.checkEmailVerification();
+      if (!isVerified) {
+        this.router.navigate(['/login']);
+        return;
+      }
+    } catch (error) {
+      console.error('メール確認チェックエラー:', error);
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    // メール確認が完了している場合のみホーム画面に遷移
     this.navigationService.selectedUserId$.subscribe(userId => {
       if (userId) {
         this.router.navigate(['users', userId, 'home']);
       }
-    }).unsubscribe(); // メモリリーク防止のため即時unsubscribe
+    }).unsubscribe();
   }
 
   goPrivate() {
@@ -220,17 +238,14 @@ export class AppComponent implements OnInit, OnDestroy {
   private async checkNotificationPermission() {
     const userId = this.authService.getCurrentUserId();
     if (!userId) return;
-
-    // 通知の許可状態をチェック
-    if (Notification.permission === 'default') {
+    console.log('hasRequested:', this.hasRequested);
+    if (Notification.permission === 'default' && !this.hasRequested) {
       try {
-        // 通知許可の確認状態をチェック
         const hasChecked = await this.messagingService.hasCheckedPermission(userId);
         if (!hasChecked) {
           console.log('通知許可ポップアップを表示します');
-          this.showPermissionPopup = true;
-          this.showNotificationPopup = false;
-          this.cdr.detectChanges(); // 変更を即座に検知
+          this.showNotificationDialog = true;
+          this.cdr.detectChanges();
         }
       } catch (error) {
         console.error('通知許可チェックエラー:', error);
@@ -240,7 +255,6 @@ export class AppComponent implements OnInit, OnDestroy {
 
   // 通知ポップアップ
   toggleNotificationPopup() {
-    console.log('通知ポップアップの切り替えが呼び出されました');
     console.log('現在の通知許可状態:', Notification.permission);
     console.log('現在のshowNotificationPopup:', this.showNotificationPopup);
     
@@ -250,10 +264,10 @@ export class AppComponent implements OnInit, OnDestroy {
     // 通知許可が未設定の場合のみ許可ポップアップを表示
     if (Notification.permission === 'default' && this.showNotificationPopup) {
       console.log('通知許可が未設定のため、許可ポップアップを表示します');
-      this.showPermissionPopup = true;
-      this.cdr.detectChanges(); // 変更を即座に検知
+      this.showNotificationDialog = true;
+      this.cdr.detectChanges();
     } else {
-      this.showPermissionPopup = false;
+      this.showNotificationDialog = false;
     }
     
     console.log('切り替え後のshowNotificationPopup:', this.showNotificationPopup);
@@ -265,20 +279,15 @@ export class AppComponent implements OnInit, OnDestroy {
     if (userId) {
       await this.messagingService.savePermissionCheck(userId);
     }
-    this.showPermissionPopup = false;
-    if (Notification.permission === 'granted') {
-      this.showNotificationPopup = true;
-    }
+    this.showNotificationDialog = false;
+    this.showNotificationPopup = false;
   }
 
   // 通知拒否ボタンが押されたときの処理
   async onPermissionDeclined() {
-    // 先にポップアップを非表示にする
-    this.showPermissionPopup = false;
+    this.showNotificationDialog = false;
     this.showNotificationPopup = false;
     this.cdr.detectChanges();
-
-    // その後で処理を実行
     const userId = this.authService.getCurrentUserId();
     if (userId) {
       await this.messagingService.savePermissionCheck(userId);
@@ -349,4 +358,15 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
   
+  isAuthPage(): boolean {
+    const currentRoute = this.router.url;
+    return currentRoute === '/login' || 
+           currentRoute === '/register' || 
+           currentRoute === '/verify-email';
+  }
+  
+  onNotificationDialogClosed() {
+    this.hasRequested = true;
+    this.showNotificationDialog = false;
+  }
 }

@@ -70,7 +70,7 @@ export class NotificationComponent implements OnInit {
         ...todo,
         lastDays: lastDays
       };
-    });
+    }).sort((a, b) => (a.lastDays || 0) - (b.lastDays || 0)); // 残り日数が大きい順に並び替え
   }
 
   // 期限切れのタスクを抽出
@@ -87,7 +87,7 @@ export class NotificationComponent implements OnInit {
         ...todo,
         expiredDays: expiredDays
       };
-    });
+    }).sort((a, b) => (b.expiredDays || 0) - (a.expiredDays || 0)); // 経過日数が多い順に並び替え
   }
 
   goTodo() {

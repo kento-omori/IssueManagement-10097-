@@ -215,6 +215,9 @@ export class CalendarComponent implements OnInit, OnDestroy {
     } else if (this.editingTodoEvent?.dbid) {
       const { pjid, projectName, id, ...updateTodoData } = this.editingTodoEvent;
       try {
+        if (!confirm('TODOリストに登録されているタスクです。本当に変更しますか？')) {
+          return; // キャンセルされた場合は処理を中止
+        };
         await this.todoFirestoreService.updateTodo(this.editingTodoEvent.dbid, updateTodoData, pjid!);
         this.showEditForm = false;
         this.editingTodoEvent = null;

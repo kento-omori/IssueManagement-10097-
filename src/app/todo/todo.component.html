@@ -127,11 +127,11 @@
         <!-- 4つごとに新しい行を開始 -->
         <div *ngIf="i % 4 === 0" class="w-100"></div>
         <!-- フィールド名 -->
-        <div class="col-1 text-center">
+        <div class="col-6 col-sm-3 col-md-1 text-center">
         <label class="form-label">{{field.name}}</label>
       </div>
         <!-- 入力フォーム -->
-        <div class="col-2">
+        <div class="col-6 col-sm-3 col-md-2">
         <ng-container [ngSwitch]="field.type">
           <input *ngSwitchCase="'text'" type="text" class="form-control" [formControlName]="'custom_' + field.id">
           <input *ngSwitchCase="'number'" type="number" class="form-control" [formControlName]="'custom_' + field.id">
@@ -149,12 +149,16 @@
       <h6 class="mb-0">項目の追加（４つまで追加可能）</h6>
     </div>
     <div class="card-body">
-      <form [formGroup]="customFieldForm" (ngSubmit)="addCustomField()" class="row g-3 align-items-end">
+      <form [formGroup]="customFieldForm" (ngSubmit)="addCustomField()" class="row g-3 align-items-start">
         <div class="col-md-4">
           <label class="form-label">新規項目名</label>
-          <input type="text" class="form-control" placeholder="例：リスク" formControlName="name">
-          <div *ngIf="customFieldForm.get('name')?.errors?.['required'] && customFieldForm.get('name')?.touched" class="text-danger small mt-1">
-            ＊フィールド名を入力してください
+          <div class="form-group">
+            <input type="text" class="form-control" placeholder="例：リスク" formControlName="name">
+            <div class="validation-message">
+              <div *ngIf="customFieldForm.get('name')?.errors?.['required'] && customFieldForm.get('name')?.touched" class="text-danger small">
+                ＊フィールド名を入力してください
+              </div>
+            </div>
           </div>
         </div>
         <div class="col-md-3">
@@ -165,6 +169,7 @@
           </select>
         </div>
         <div class="col-md-2">
+          <label class="form-label">&nbsp;</label>
           <button type="submit" class="btn btn-secondary w-100" [disabled]="!customFieldForm.valid">
             <i class="fa fa-plus"></i> フィールドを追加
           </button>
@@ -546,7 +551,7 @@
             <div class="d-flex justify-content-between align-items-center mt-1">
               <div class="text-danger small">
                 <span *ngIf="commentForm.get('text')?.errors?.['required'] && commentForm.get('text')?.touched">
-                  ＊コメントを入力してください
+              ＊コメントを入力してください
                 </span>
                 <span *ngIf="commentForm.get('text')?.errors?.['maxlength'] && commentForm.get('text')?.touched">
                   ＊100文字以内で入力してください

@@ -25,7 +25,7 @@
                 "glob": "**/*",
                 "input": "public"
               },
-              "src/favicon.ico",
+              "src/icons8-to-do-list-32.png",
               "src/assets",
               "src/firebase-messaging-sw.js"
             ],

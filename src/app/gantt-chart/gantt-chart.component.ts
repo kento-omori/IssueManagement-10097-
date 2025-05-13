@@ -132,7 +132,7 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
 
   private resizeHandler = () => {
     if (gantt.$container) {
-      gantt.setSizes();
+    gantt.setSizes();
       // スケールの再計算
       gantt.render();
     }
@@ -150,7 +150,7 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
     gantt.config.row_height = 36; // 行の高さを明示的に指定
     gantt.config.order_branch = true;
     gantt.config.show_links = true;
-    gantt.config.fit_tasks = true; // タスクに合わせて表示を調整
+    gantt.config.fit_tasks = false; // タスクに合わせて表示を調整
     gantt.config.auto_scheduling = false; // 自動スケジューリングを無効化
     gantt.config.auto_scheduling_strict = false; // 厳密な自動スケジューリングを無効化
     gantt.config.work_time = false; // 稼働時間の表示を無効化
@@ -223,6 +223,9 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
     // タスクの更新イベントを監視
     gantt.attachEvent("onAfterTaskUpdate", async (id: string, item: any) => {
       try {              
+        // 現在のスクロール位置を保存
+        const scrollState = gantt.getScrollState();
+        
         // dbidを使用してFirestoreのドキュメントを更新
         const taskId = item.dbid || id;
         // Firestoreに保存するデータを準備
@@ -249,9 +252,15 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
         }
         // Firestoreのドキュメントを更新
         await this.todoFirestoreService.updateTodo(taskId, updateData);
+
+        // 更新後にスクロール位置を復元
+        gantt.scrollTo(scrollState.x, scrollState.y);
       } catch (error) {
         console.error('Error updating task in Firestore:', error);
-        gantt.refreshData(); // エラーが発生した場合は元の値に戻す
+        // エラー時もスクロール位置を保持
+        const scrollState = gantt.getScrollState();
+        gantt.refreshData();
+        gantt.scrollTo(scrollState.x, scrollState.y);
       }
     });
 
@@ -377,11 +386,21 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
       // 全てのタスクのend_dateを+1日する
       const fixedTasks = tasks.map(task => {
         // 日付のバリデーション
+        if (!task.start_date || !task.end_date) {
+          console.error('Missing date in task:', task);
+          return null;
+        }
+
         const startDate = new Date(task.start_date);
         const endDate = new Date(task.end_date);
         
         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-          console.error('Invalid date found:', task);
+          console.error('Invalid date found in task:', {
+            taskId: task.id,
+            startDate: task.start_date,
+            endDate: task.end_date,
+            rawTask: task
+          });
           return null;
         }
 
@@ -483,7 +502,7 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
       // });
 
       // this.isPopupVisible = true;
-      return false;
+        return false;
     });
 
     // タスククリックイベント
@@ -531,15 +550,11 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
     gantt.attachEvent("onAfterLinkDelete", async (id: string, link: any) => {
       // tasks配列からdbidを取得
       const sourceTask = this.tasks?.find(task => String(task.id) === String(link.source));
-      console.log(link.source);
-      console.log(sourceTask);
       if (!sourceTask) {
         console.error('sourceTask not found for link:', link);
         return true;
       }
       await this.todoFirestoreService.deleteLinkFromTask(sourceTask.dbid!, id);
-      console.log(sourceTask.dbid,id);
-      console.log('onAfterLinkDelete', link);
       return true;
     });
 

@@ -91,7 +91,6 @@ export class TodoFirestoreService {
   // Todoの削除
   async deleteTodo(todoDbId: string, pjid?: string) {
     const collectionPath = this.getCollectionPath(pjid);
-    console.log('deleteTodo collectionPath:', collectionPath);
     try {
       const docRef = doc(this.firestore, collectionPath, todoDbId);
       await deleteDoc(docRef);
@@ -132,7 +131,6 @@ export class TodoFirestoreService {
     const taskRef = doc(this.firestore, collectionPath, dbid);
     const taskSnap = await getDoc(taskRef);
     if (taskSnap.exists()) {
-      console.log('deleteLinkFromTask taskSnap:', taskSnap.data());
       const data = taskSnap.data();
       const links = Array.isArray(data['links']) ? data['links'] : [];
       const newLinks = links.filter((l: any) => String(l.id) !== String(linkId));

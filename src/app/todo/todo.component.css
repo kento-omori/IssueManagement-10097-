@@ -149,3 +149,29 @@ button {
   background: transparent;
   border: none;
 }
+
+.form-group {
+  position: relative;
+  margin-bottom: 0;
+}
+
+.form-group input,
+.form-group select,
+.form-select,
+.btn {
+  height: 38px;
+}
+
+.validation-message {
+  position: absolute;
+  width: 100%;
+  min-height: 20px;
+  margin-top: 4px;
+}
+
+.validation-message .text-danger {
+  font-size: 12px;
+  line-height: 1.2;
+  display: block;
+  margin-top: 2px;
+}

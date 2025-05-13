@@ -4,7 +4,11 @@ import { setGlobalOptions } from "firebase-functions/v2/options";
 import admin from "firebase-admin";
 
 admin.initializeApp();
-setGlobalOptions({ region: "asia-northeast1" });
+setGlobalOptions({ 
+  region: "asia-northeast1",
+  memory: "256MiB",
+  timeoutSeconds: 60
+});
 
 const db = admin.firestore();
 const messaging = admin.messaging();
@@ -113,7 +117,7 @@ async function cleanupInvalidTokens(userId: string, tokensToRemove: string[]) {
 /** 毎日午前9時に実行され、期限が翌日のタスクを担当者に通知する**/
 export const sendDeadlineReminderNotifications = onSchedule(
   {
-    schedule: 'every 1 minutes',  // テスト用に1分ごとに実行
+    schedule: 'everyday 09:00',
     timeZone: 'Asia/Tokyo',
     region: 'asia-northeast1'
   },
@@ -214,7 +218,7 @@ export const sendDeadlineReminderNotifications = onSchedule(
 // 期限当日通知
 export const sendTodayDeadlineNotifications = onSchedule(
   {
-    schedule: 'every 1 minutes',  // テスト用に1分ごとに実行
+    schedule: 'everyday 09:00',
     timeZone: 'Asia/Tokyo',
     region: 'asia-northeast1'
   },

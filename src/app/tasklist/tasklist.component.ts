@@ -382,6 +382,7 @@ export class TasklistComponent implements OnInit {
     const userId = this.navigationService.selectedUserIdSource.getValue();
     this.router.navigate(['users', userId, 'private']);
   }
+  
 
   // フィルターをリセットするメソッド
   resetFilters(): void {

@@ -83,7 +83,6 @@ export class ParentIShareComponent implements OnInit {
   }
 
   goIShare(spaceId: string): void {
-    console.log(spaceId);
     this.ishareFirestoreService.goIShare(spaceId);
   }
 

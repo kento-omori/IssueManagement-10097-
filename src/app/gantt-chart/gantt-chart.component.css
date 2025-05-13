@@ -1,18 +1,19 @@
 .gantt-container {
   width: 100%;
-  height: calc(100vh - 200px); /* ヘッダーとフォームの高さを考慮 */
+  height: 200vh;
   min-height: 400px;
   position: relative;
-  overflow: hidden;
+  overflow: auto;
   display: flex;
   flex-direction: column;
 }
 
 .gantt-chart {
   width: 100%;
-  height: 100%;
   position: relative;
   flex: 1;
+  overflow: auto;
+  height: auto;
 }
 
 /* レスポンシブ対応 */
@@ -27,27 +28,38 @@
   min-width: 80px;
 }
 
+/* ガントチャートのデータ部分の幅を調整 */
 :host ::ng-deep .gantt_grid_data {
   min-width: 150px;
 }
 
-/* タスクバーの表示を調整 */
+/* タスクバーの表示を調整(タスクバーを太くできる) */
 :host ::ng-deep .gantt_task_line {
   min-width: 50px;
-  height: 20px !important;
+  height: 30px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
 }
 
-/* スケールの表示を調整 */
+/* スケール（日付のほうのヘッダー）の表示を調整 */
 :host ::ng-deep .gantt_scale_line {
   min-width: 30px;
 }
 
+/* グリッドのヘッダーセルとスケールセルのスタイル */
 :host ::ng-deep .gantt_grid_scale .gantt_grid_head_cell,
 :host ::ng-deep .gantt_task_scale .gantt_scale_cell {
   font-weight: bold;
   font-size: 14px;
   color: #333;
 }
+
+/* 各データのセルを幅いっぱいまで使うための設定 */
 :host ::ng-deep .gantt_grid_data .gantt_cell {
   padding: 1px;
   line-height: 32px;
@@ -57,27 +69,37 @@
   max-width: 100% !important;
   height: 40px !important;
   min-height: 40px !important;
+  /* padding: 4px;
+  line-height: 1.4;
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: 40px !important;
+  display: flex;
+  align-items: center;
+  text-align: left; */
 }
+
+/* chartの横線を消す */
 :host ::ng-deep .gantt_grid_data .gantt_row,
 :host ::ng-deep .gantt_task_row {
-  height: 40px !important;
+  height: auto !important;
   min-height: 40px !important;
+  max-height: none !important;
 }
+/* スクロールバーのスタイル */
 :host ::ng-deep .gantt_hor_scroll {
-  height: 15px;
+  height: 20px; /* スクロールバーの高さを増加 */
+  background: #f5f5f5;
 }
 :host ::ng-deep .gantt_ver_scroll {
-  width: 15px;
+  width: 20px; /* スクロールバーの幅を増加 */
+  background: #f5f5f5;
 }
-/* :host ::ng-deep .gantt_task_line.high .gantt_task_progress {
-  background: rgb(204, 118, 118) !important;
-}
-:host ::ng-deep .gantt_task_line.medium .gantt_task_progress {
-  background: rgb(255, 187, 51) !important;
-}
-:host ::ng-deep .gantt_task_line.low .gantt_task_progress {
-  background: rgb(0, 200, 80) !important;
-} */
+
+/* 優先度に応じてバーの色を変更 */
 :host ::ng-deep .gantt_task_line.priority-high {
 background-color: #ff4444 !important; 
 }
@@ -88,6 +110,19 @@ background-color: #ffbb33 !important;
 background-color: #00C851 !important; 
 }
 
+/* スクロールバーのつまみ部分のスタイル */
+:host ::ng-deep .gantt_hor_scroll .gantt_scroll_thumb,
+:host ::ng-deep .gantt_ver_scroll .gantt_scroll_thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+:host ::ng-deep .gantt_hor_scroll .gantt_scroll_thumb:hover,
+:host ::ng-deep .gantt_ver_scroll .gantt_scroll_thumb:hover {
+  background: #999;
+}
+
+/* 入力フォーム関係 */
 .form-group {
   min-height: 85px;
   margin-bottom: 1rem;
@@ -95,17 +130,26 @@ background-color: #00C851 !important;
 }
 
 .validation-message {
-  min-height: 40px;
-  margin-top: 4px;
   position: absolute;
   width: 100%;
+  min-height: 20px;
+  margin-top: 4px;
 }
 
 .validation-message .text-danger {
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.2;
   display: block;
   margin-top: 2px;
+}
+
+.invalid-feedback {
+  font-size: 11px;
+  line-height: 1.2;
+  display: block;
+  margin-top: 2px;
+  position: absolute;
+  width: 100%;
 }
 
 /* 入力フォームのコンテナ */
@@ -141,6 +185,7 @@ background-color: #00C851 !important;
   border-radius: 4px;
 }
 
+/* 入力モード */
 .new-mode {
   color: #dc3545;  /* 赤色 */
   background-color: rgba(220, 53, 69, 0.1);
@@ -149,12 +194,6 @@ background-color: #00C851 !important;
 .edit-mode {
   color: #0d6efd;  /* 青色 */
   background-color: rgba(13, 110, 253, 0.1);
-}
-
-.switched-mode {
-  color: #fd7e14;  /* オレンジ色 */
-  background-color: rgba(253, 126, 20, 0.1);
-  animation: fadeIn 0.5s ease-in-out;
 }
 
 @keyframes fadeIn {
@@ -166,24 +205,4 @@ background-color: #00C851 !important;
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-/* タスク数が少ない場合の表示調整 */
-:host ::ng-deep .gantt_task {
-  min-width: 50px;
-}
-
-:host ::ng-deep .gantt_task_content {
-  font-size: 12px;
-  line-height: 20px;
-  padding: 0 5px;
-}
-
-/* タスクが少ない場合の表示最適化 */
-:host ::ng-deep .gantt_task_line {
-  border-radius: 3px;
-}
-
-:host ::ng-deep .gantt_task_progress {
-  border-radius: 3px;
 }

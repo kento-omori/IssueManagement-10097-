@@ -38,7 +38,6 @@ export class IShareFirestoreService {
     try {
       const collectionRef = collection(this.firestore, collectionPath);
       const q = query(collectionRef, orderBy('createdAt', 'asc'));
-      console.log('Query for spaces:', q);
       return collectionData(q, { idField: 'dbid' }) as Observable<SpaceData[]>;
     } catch (error) {
       console.error('情報共有スペース取得エラー:', error);

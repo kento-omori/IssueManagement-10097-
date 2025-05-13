@@ -108,7 +108,6 @@ export class NotificationListComponent implements OnInit {
   onMarkAllAsRead() {
     try {
       this.markAllAsRead.emit();
-      console.log('markAllAsReadイベントを発火しました');
     } catch (error) {
       console.error('markAllAsReadイベントの発火に失敗しました:', error);
     }

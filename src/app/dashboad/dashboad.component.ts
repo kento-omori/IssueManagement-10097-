@@ -193,7 +193,6 @@ export class DashboadComponent implements OnInit, OnDestroy {
     event: ChartEvent;
     active: object[];
   }): void {
-    console.log(event, active);
   }
 
   public chartHovered({
@@ -203,6 +202,5 @@ export class DashboadComponent implements OnInit, OnDestroy {
     event: ChartEvent;
     active: object[];
   }): void {
-    console.log(event, active);
   }
 }

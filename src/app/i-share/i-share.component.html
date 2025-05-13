@@ -20,7 +20,7 @@
 <!-- メインコンテンツエリア -->
 <div class="d-flex flex-column" style="height: calc(100vh - 200px);">
   <!-- コメントリスト（スクロール可能） -->
-  <div class="flex-grow-1 overflow-auto">
+  <div class="flex-grow-1 overflow-auto" #commentList>
     <div *ngFor="let comment of comments; let i = index" class="card mb-2" [ngClass]="{'bg-light text-muted': comment.isDeleted}">
       <div class="card-body p-2">
         <div class="d-flex align-items-center mb-1">
@@ -28,10 +28,10 @@
           <span class="fw-bold"><i class="fa fa-user me-1"></i>{{ comment.user }}</span>
           <span class="ms-2 small text-secondary"><i class="fa fa-clock me-1"></i>{{ comment.date | date:'yyyy/MM/dd HH:mm' }}</span>
           <span *ngIf="comment.edited" class="ms-2 small text-secondary">
-            <i class="fa fa-pencil-alt me-1"></i>{{ comment.editedBy }}が編集済み：{{ comment.editedAt | date:'yyyy/MM/dd HH:mm' }}
+            <i class="fa fa-pencil-alt me-1"></i>{{ comment.editedAt | date:'yyyy/MM/dd HH:mm' }}（編集済み）
           </span>
           <div class="ms-auto" *ngIf="!comment.isDeleted">
-            <button class="btn btn-sm btn-outline-primary me-2" (click)="onEditComment(comment)">
+            <button class="btn btn-sm btn-outline-primary me-2" (click)="onEditComment(comment)" *ngIf="comment.user === userName">
               <i class="fa fa-edit"></i>
             </button>
             <button class="btn btn-sm btn-outline-danger" (click)="onDeleteComment(comment)" [disabled]="editingCommentId" *ngIf="comment.user === userName">

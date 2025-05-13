@@ -169,14 +169,14 @@ export class ProjectFirestoreService {
     return this.getProjectById(pjid).pipe(
       switchMap((project: ProjectData | undefined) => {
         if (!project) return of([]);
-        const memberIds = project.projectMembers;
+        const memberIds = project.projectMembers || [];
         return this.getUsersByIds(memberIds).pipe(
           map(users => users.map(user => ({
             uid: user.uid,
             displayName: user.displayName,
             email: user.email,
-            isAdmin: project.admin.includes(user.uid),
-            isOwner: project.owner.includes(user.uid)
+            isAdmin: project.admin?.includes(user.uid) || false,
+            isOwner: project.owner?.includes(user.uid) || false
           })))
         );
       })
