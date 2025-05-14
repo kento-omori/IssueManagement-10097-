@@ -50,7 +50,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.notificationSubscription = this.messagingService.notifications$.subscribe(list => {
       this.notifications = list;
       this.unreadCount = list.filter(n => !n.read).length;
-      // 新着通知があればナビゲーション部分の下に表示（１０秒）
+      // 新着通知があればナビゲーション部分の下に表示（５秒）
       if (list.length > 0 && !list[0].read) {
         this.showBanner = true;
         this.bannerNotification = list[0];
@@ -212,7 +212,12 @@ export class AppComponent implements OnInit, OnDestroy {
       if(currentRouteFirst?.snapshot.url[0].path === 'projects') {
         this.currentProjectName = 'プロジェクト一覧';
       } else if (currentRouteFirst?.snapshot.url[0].path === 'users') {
-        this.currentProjectName = '個人ワークスペース';
+        // ユーザーのホームページの場合
+        if (currentRouteFirst?.snapshot.url[2]?.path === 'home') {
+          this.currentProjectName = 'ホーム';
+        } else {
+          this.currentProjectName = '個人ワークスペース';
+        }
       } else {
         this.currentProjectName = '';
       };
