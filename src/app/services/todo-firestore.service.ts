@@ -116,13 +116,17 @@ export class TodoFirestoreService {
     const collectionPath = this.getCollectionPath();
     const taskRef = doc(this.firestore, collectionPath, dbid);
     const taskSnap = await getDoc(taskRef);
-    let links = [];
+    
     if (taskSnap.exists()) {
       const data = taskSnap.data();
-      links = Array.isArray(data['links']) ? data['links'] : [];
+      const links = Array.isArray(data['links']) ? data['links'] : [];
+      links.push(link);
+      
+      // 既存のデータを保持しながらlinksを更新
+      await updateDoc(taskRef, {
+        links: links
+      });
     }
-    links.push(link);
-    await setDoc(taskRef, { links }, { merge: true });
   }
 
   // 指定したタスク(dbid)のlinks配列からリンクを削除する
@@ -134,7 +138,7 @@ export class TodoFirestoreService {
       const data = taskSnap.data();
       const links = Array.isArray(data['links']) ? data['links'] : [];
       const newLinks = links.filter((l: any) => String(l.id) !== String(linkId));
-      await setDoc(taskRef, { links: newLinks }, { merge: true });
+      await updateDoc(taskRef, { links: newLinks });
     }
   }
 

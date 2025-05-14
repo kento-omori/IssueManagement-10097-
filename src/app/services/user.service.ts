@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, doc, setDoc, getDoc, collection, addDoc, getDocs, where, query, limit, deleteDoc } from '@angular/fire/firestore';
+import { Firestore, doc, setDoc, getDoc, collection, addDoc, getDocs, where, query, limit, deleteDoc, updateDoc, arrayRemove } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
 import { User } from '@angular/fire/auth';
 
@@ -155,10 +155,25 @@ export class UserService {
         throw new Error('プロジェクトの管理者またはオーナーはアカウントを削除できません。先にプロジェクトの管理者権限を移譲してください。');
       }
 
-      // ユーザーのメインドキュメントを削除
-      await deleteDoc(doc(this.firestore, 'users', userId));
+      // プロジェクト関連のデータを先に削除
+      const projectsRef = collection(this.firestore, 'projects');
+      const projectsQuery = query(projectsRef, where('projectMembers', 'array-contains', userId));
+      const projectsSnapshot = await getDocs(projectsQuery);
 
-      // ユーザーに関連するサブコレクションの削除（プロジェクトデータは消さない！）
+      for (const projectDoc of projectsSnapshot.docs) {
+        const projectId = projectDoc.id;
+        // プロジェクトのメンバーリストからユーザーを削除
+        const projectRef = doc(this.firestore, 'projects', projectId);
+        // すべての関連配列からユーザーを削除
+        await updateDoc(projectRef, {
+          members: arrayRemove(userId),
+          admin: arrayRemove(userId),
+          owner: arrayRemove(userId),
+          projectMembers: arrayRemove(userId)
+        });
+      }
+
+      // ユーザーに関連するサブコレクションの削除
       const subCollections = [
         'fcmtoken',
         'todos',
@@ -179,19 +194,8 @@ export class UserService {
         await Promise.all(deletePromises);
       }
 
-      // プロジェクト関連のデータを削除
-      const projectsRef = collection(this.firestore, 'projects');
-      const projectsQuery = query(projectsRef, where('members', 'array-contains', userId));
-      const projectsSnapshot = await getDocs(projectsQuery);
-
-      for (const projectDoc of projectsSnapshot.docs) {
-        const projectId = projectDoc.id;
-        // プロジェクトのメンバーリストからユーザーを削除
-        const projectRef = doc(this.firestore, 'projects', projectId);
-        const projectData = projectDoc.data();
-        const updatedMembers = projectData['members'].filter((id: string) => id !== userId);
-        await setDoc(projectRef, { members: updatedMembers }, { merge: true });
-      }
+      // 最後にユーザーのメインドキュメントを削除
+      await deleteDoc(doc(this.firestore, 'users', userId));
 
     } catch (error) {
       console.error('ユーザーデータの削除に失敗しました:', error);

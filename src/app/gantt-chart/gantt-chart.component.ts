@@ -531,31 +531,45 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy, OnInit {
 
     // リンク追加時
     gantt.attachEvent("onAfterLinkAdd", async (id: string, link: any) => {
-      // tasks配列をクラス変数として保持している前提
-      const sourceTask = this.tasks?.find(task => String(task.id) === String(link.source));
-      if (!sourceTask) {
-        console.error('sourceTask not found for link:', link);
+      try {
+        // tasks配列をクラス変数として保持している前提
+        const sourceTask = this.tasks?.find(task => String(task.id) === String(link.source));
+        if (!sourceTask) {
+          console.error('sourceTask not found for link:', link);
+          return true;
+        }
+
+        // リンクデータの型を確実に文字列に変換
+        const linkData = {
+          id: String(link.id),
+          source: String(link.source),
+          target: String(link.target),
+          type: String(link.type)
+        };
+
+        await this.todoFirestoreService.addLinkToTask(sourceTask.dbid!, linkData);
         return true;
+      } catch (error) {
+        console.error('Error adding link:', error);
+        return false;
       }
-      await this.todoFirestoreService.addLinkToTask(sourceTask.dbid!, {
-        id: link.id,
-        source: link.source,
-        target: link.target,
-        type: link.type
-      });
-      return true;
     });
 
     // リンク削除時
     gantt.attachEvent("onAfterLinkDelete", async (id: string, link: any) => {
-      // tasks配列からdbidを取得
-      const sourceTask = this.tasks?.find(task => String(task.id) === String(link.source));
-      if (!sourceTask) {
-        console.error('sourceTask not found for link:', link);
+      try {
+        // tasks配列からdbidを取得
+        const sourceTask = this.tasks?.find(task => String(task.id) === String(link.source));
+        if (!sourceTask) {
+          console.error('sourceTask not found for link:', link);
+          return true;
+        }
+        await this.todoFirestoreService.deleteLinkFromTask(sourceTask.dbid!, id);
         return true;
+      } catch (error) {
+        console.error('Error deleting link:', error);
+        return false;
       }
-      await this.todoFirestoreService.deleteLinkFromTask(sourceTask.dbid!, id);
-      return true;
     });
 
   }
